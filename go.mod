@@ -7,6 +7,7 @@ replace github.com/slsa-framework/slsa-core => ../slsa-core
 require (
 	github.com/carabiner-dev/hasher v0.2.4
 	github.com/in-toto/attestation v1.2.0
+	github.com/slsa-framework/slsa-core v0.0.0
 	google.golang.org/protobuf v1.36.11
 )
 

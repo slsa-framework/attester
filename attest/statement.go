@@ -31,6 +31,22 @@ func buildStatement(predicateType string, subjects []*intoto.ResourceDescriptor,
 	}, nil
 }
 
+// predicateAs returns Options.Predicate asserted to the concrete proto type T.
+// A nil Options.Predicate returns the zero value (a nil pointer) and no error,
+// letting the caller substitute an empty predicate. A predicate set to an
+// incompatible type is reported as an error.
+func predicateAs[T proto.Message](o *Options) (T, error) {
+	var zero T
+	if o.Predicate == nil {
+		return zero, nil
+	}
+	p, ok := o.Predicate.(T)
+	if !ok {
+		return zero, fmt.Errorf("predicate of type %T is not valid for this format", o.Predicate)
+	}
+	return p, nil
+}
+
 // predicateToStruct marshals a predicate proto through protojson (which gives
 // the spec-correct field naming) and loads the result into a structpb.Struct.
 func predicateToStruct(predicate proto.Message) (*structpb.Struct, error) {

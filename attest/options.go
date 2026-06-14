@@ -13,7 +13,7 @@ import (
 // Signer abstracts envelope signing. It is a placeholder for now: the Writer
 // produces bare statements and does not sign them yet. The seam lets us add
 // DSSE/envelope signing later without changing the format methods.
-type Signer interface{}
+type Signer any
 
 // Options holds the configuration applied to a single attestation operation.
 // It is populated by the functional OptFn options passed to the Attest methods.

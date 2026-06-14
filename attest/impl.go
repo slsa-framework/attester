@@ -95,10 +95,6 @@ func (*defaultImpl) ReadSubjects(o *Options, paths []string) ([]*intoto.Resource
 	return subjects, nil
 }
 
-func (*defaultImpl) GenerateSlsaProvenanceV1Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error) {
-	return nil, errNotImplemented("GenerateSlsaProvenanceV1Statement")
-}
-
 func (*defaultImpl) GenerateSlsaProvenanceV02Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error) {
 	return nil, errNotImplemented("GenerateSlsaProvenanceV02Statement")
 }
