@@ -95,10 +95,6 @@ func (*defaultImpl) ReadSubjects(o *Options, paths []string) ([]*intoto.Resource
 	return subjects, nil
 }
 
-func (*defaultImpl) GenerateVsaV1Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error) {
-	return nil, errNotImplemented("GenerateVsaV1Statement")
-}
-
 // Serialize renders the statement as compact, single-line JSON. protojson emits
 // intentionally unstable whitespace, so we normalize through json.Compact to get
 // a deterministic one-line result.

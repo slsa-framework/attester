@@ -17,11 +17,6 @@ import (
 // produce.
 var ErrUnknownVersion = errors.New("unknown attestation version")
 
-// errNotImplemented builds a placeholder error for unimplemented impl methods.
-func errNotImplemented(op string) error {
-	return fmt.Errorf("%s: not implemented yet", op)
-}
-
 // Writer generates attestations. The zero value is usable; it lazily wires in
 // the default implementation on first use.
 type Writer struct {
