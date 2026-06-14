@@ -45,6 +45,7 @@ func New() *cobra.Command {
 	logOpts.AddFlags(rootCmd)
 
 	addBuild(rootCmd)
+	addVSA(rootCmd)
 
 	return rootCmd
 }
