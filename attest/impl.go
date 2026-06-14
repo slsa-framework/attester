@@ -4,7 +4,15 @@
 package attest
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/carabiner-dev/hasher"
 	intoto "github.com/in-toto/attestation/go/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // attesterImpl is the internal implementation seam for the Writer. The public
@@ -36,17 +44,55 @@ type attesterImpl interface {
 	Write(*Options, []byte) error
 }
 
-// defaultImpl is the production implementation of attesterImpl. Its methods are
-// filled in by subsequent chunks; for now they report that the operation is not
-// yet implemented.
+// defaultImpl is the production implementation of attesterImpl. The format
+// generators are filled in by subsequent chunks.
 type defaultImpl struct{}
 
-func (*defaultImpl) ValidateOptions(*Options) error {
+// ValidateOptions checks the resolved options before any work is done.
+func (*defaultImpl) ValidateOptions(o *Options) error {
+	if o.Writer == nil {
+		return fmt.Errorf("no output writer configured")
+	}
 	return nil
 }
 
-func (*defaultImpl) ReadSubjects(*Options, []string) ([]*intoto.ResourceDescriptor, error) {
-	return nil, errNotImplemented("ReadSubjects")
+// ReadSubjects hashes the subject paths and returns one resource descriptor per
+// unique path, preserving the order in which the paths were given.
+func (*defaultImpl) ReadSubjects(o *Options, paths []string) ([]*intoto.ResourceDescriptor, error) {
+	if len(paths) == 0 {
+		return nil, nil
+	}
+
+	h := hasher.New()
+	if len(o.HashAlgorithms) > 0 {
+		if err := hasher.WithAlgorithms(o.HashAlgorithms)(&h.Options); err != nil {
+			return nil, fmt.Errorf("configuring hash algorithms: %w", err)
+		}
+	}
+
+	fileHashes, err := h.HashFiles(paths)
+	if err != nil {
+		return nil, fmt.Errorf("hashing subjects: %w", err)
+	}
+
+	subjects := make([]*intoto.ResourceDescriptor, 0, len(paths))
+	seen := map[string]struct{}{}
+	for _, path := range paths {
+		if _, ok := seen[path]; ok {
+			continue
+		}
+		seen[path] = struct{}{}
+
+		hashSet, ok := (*fileHashes)[path]
+		if !ok {
+			return nil, fmt.Errorf("no hashes computed for %q", path)
+		}
+		rd := hashSet.ToResourceDescriptor()
+		rd.Name = filepath.Base(path)
+		subjects = append(subjects, rd)
+	}
+
+	return subjects, nil
 }
 
 func (*defaultImpl) GenerateSlsaProvenanceV1Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error) {
@@ -61,10 +107,29 @@ func (*defaultImpl) GenerateVsaV1Statement(*Options, []*intoto.ResourceDescripto
 	return nil, errNotImplemented("GenerateVsaV1Statement")
 }
 
-func (*defaultImpl) Serialize(*Options, *intoto.Statement) ([]byte, error) {
-	return nil, errNotImplemented("Serialize")
+// Serialize renders the statement as compact, single-line JSON. protojson emits
+// intentionally unstable whitespace, so we normalize through json.Compact to get
+// a deterministic one-line result.
+func (*defaultImpl) Serialize(_ *Options, stmt *intoto.Statement) ([]byte, error) {
+	data, err := protojson.Marshal(stmt)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling statement: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, data); err != nil {
+		return nil, fmt.Errorf("compacting statement json: %w", err)
+	}
+	return buf.Bytes(), nil
 }
 
-func (*defaultImpl) Write(*Options, []byte) error {
-	return errNotImplemented("Write")
+// Write emits the serialized attestation followed by a newline.
+func (*defaultImpl) Write(o *Options, data []byte) error {
+	w := o.Writer
+	if w == nil {
+		w = os.Stdout
+	}
+	if _, err := w.Write(append(data, '\n')); err != nil {
+		return fmt.Errorf("writing attestation: %w", err)
+	}
+	return nil
 }
