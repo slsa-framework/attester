@@ -1,0 +1,80 @@
+// SPDX-FileCopyrightText: Copyright 2026 The SLSA Authors
+// SPDX-License-Identifier: Apache-2.0
+
+package attest
+
+import (
+	"io"
+	"os"
+
+	"google.golang.org/protobuf/proto"
+)
+
+// Signer abstracts envelope signing. It is a placeholder for now: the Writer
+// produces bare statements and does not sign them yet. The seam lets us add
+// DSSE/envelope signing later without changing the format methods.
+type Signer interface{}
+
+// Options holds the configuration applied to a single attestation operation.
+// It is populated by the functional OptFn options passed to the Attest methods.
+type Options struct {
+	// Writer is where the serialized attestation is written. Defaults to
+	// os.Stdout.
+	Writer io.Writer
+
+	// HashAlgorithms are the digest algorithms used when hashing subject files.
+	// Defaults to sha256.
+	HashAlgorithms []string
+
+	// Predicate is the predicate message to embed in the statement. Each format
+	// method type-asserts it to the concrete predicate type it expects. When
+	// nil, the format methods generate an empty predicate of the right type.
+	Predicate proto.Message
+
+	// Signer, when set, is used to sign the generated attestation. Unused for
+	// now (see Signer).
+	Signer Signer
+}
+
+// defaultOptions returns the baseline Options before any OptFn is applied.
+func defaultOptions() Options {
+	return Options{
+		Writer:         os.Stdout,
+		HashAlgorithms: []string{"sha256"},
+	}
+}
+
+// OptFn is a functional option mutating an Options value.
+type OptFn func(*Options) error
+
+// WithWriter sets the destination for the serialized attestation.
+func WithWriter(w io.Writer) OptFn {
+	return func(o *Options) error {
+		o.Writer = w
+		return nil
+	}
+}
+
+// WithHashAlgorithms sets the digest algorithms used to hash subject files.
+func WithHashAlgorithms(algos ...string) OptFn {
+	return func(o *Options) error {
+		o.HashAlgorithms = algos
+		return nil
+	}
+}
+
+// WithPredicate sets the predicate message embedded in the statement.
+func WithPredicate(p proto.Message) OptFn {
+	return func(o *Options) error {
+		o.Predicate = p
+		return nil
+	}
+}
+
+// WithSigner sets the signer used to sign the attestation.
+func WithSigner(s Signer) OptFn {
+	return func(o *Options) error {
+		o.Signer = s
+		return nil
+	}
+}
