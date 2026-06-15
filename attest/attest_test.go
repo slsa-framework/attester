@@ -4,48 +4,71 @@
 package attest
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"testing"
+
+	buildv1 "github.com/slsa-framework/slsa-core/predicates/build/v1"
 )
+
+// attestTo runs Attest with a buffer writer and returns the decoded statement.
+func attestTo(t *testing.T, version AttestationVersion, fn ...OptFn) (map[string]any, error) {
+	t.Helper()
+	var buf bytes.Buffer
+	w := &Writer{}
+	if err := w.Attest(version, nil, append(fn, WithWriter(&buf))...); err != nil {
+		return nil, err
+	}
+	var stmt map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &stmt); err != nil {
+		t.Fatalf("decoding output: %v", err)
+	}
+	return stmt, nil
+}
 
 func TestAttestDispatch(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name     string
-		version  AttestationVersion
-		wantGen  string
-		wantErr  bool
-		errIsUnk bool
+		name    string
+		version AttestationVersion
+		want    string
 	}{
-		{name: "build v1", version: SlsaProvenanceV1, wantGen: "GenerateSlsaProvenanceV1Statement"},
-		{name: "build v0.2", version: SlsaProvenanceV02, wantGen: "GenerateSlsaProvenanceV02Statement"},
-		{name: "vsa v1", version: VsaV1, wantGen: "GenerateVsaV1Statement"},
-		{name: "unknown", version: AttestationVersion("nope"), wantErr: true, errIsUnk: true},
+		{"build v1", SlsaProvenanceV1, PredicateTypeSlsaProvenanceV1},
+		{"build v0.2", SlsaProvenanceV02, PredicateTypeSlsaProvenanceV02},
+		{"vsa v1", VsaV1, PredicateTypeVsaV1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			fake := &fakeImpl{}
-			w := &Writer{}
-			w.SetImplementation(fake)
-
-			err := w.Attest(tc.version, []string{"a"})
-			if tc.wantErr {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
-				if tc.errIsUnk && !errors.Is(err, ErrUnknownVersion) {
-					t.Fatalf("expected ErrUnknownVersion, got %v", err)
-				}
-				return
-			}
+			stmt, err := attestTo(t, tc.version)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			assertCalls(t, fake.calls, []string{
-				"ValidateOptions", "ReadSubjects", tc.wantGen, "Serialize", "Write",
-			})
+			if stmt["predicateType"] != tc.want {
+				t.Fatalf("predicateType = %v, want %v", stmt["predicateType"], tc.want)
+			}
 		})
 	}
+}
+
+func TestAttestUnknownVersion(t *testing.T) {
+	t.Parallel()
+	w := &Writer{}
+	err := w.Attest(AttestationVersion("nope"), nil)
+	if !errors.Is(err, ErrUnknownVersion) {
+		t.Fatalf("expected ErrUnknownVersion, got %v", err)
+	}
+}
+
+func TestAttestOrchestrationOrder(t *testing.T) {
+	t.Parallel()
+	fake := &fakeImpl{}
+	w := &Writer{}
+	w.SetImplementation(fake)
+	if err := w.AttestSlsaProvenanceV1(nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertCalls(t, fake.calls, []string{"ValidateOptions", "ReadSubjects", "Serialize", "Write"})
 }
 
 func TestAttestShortCircuitsOnError(t *testing.T) {
@@ -55,37 +78,34 @@ func TestAttestShortCircuitsOnError(t *testing.T) {
 		fake      *fakeImpl
 		wantCalls []string
 	}{
-		{
-			name:      "validate fails",
-			fake:      &fakeImpl{validateErr: errors.New("bad opts")},
-			wantCalls: []string{"ValidateOptions"},
-		},
-		{
-			name:      "read subjects fails",
-			fake:      &fakeImpl{subjectsErr: errors.New("hash error")},
-			wantCalls: []string{"ValidateOptions", "ReadSubjects"},
-		},
-		{
-			name:      "generate fails",
-			fake:      &fakeImpl{genErr: errors.New("gen error")},
-			wantCalls: []string{"ValidateOptions", "ReadSubjects", "GenerateVsaV1Statement"},
-		},
-		{
-			name:      "serialize fails",
-			fake:      &fakeImpl{serializeErr: errors.New("ser error")},
-			wantCalls: []string{"ValidateOptions", "ReadSubjects", "GenerateVsaV1Statement", "Serialize"},
-		},
+		{"validate fails", &fakeImpl{validateErr: errors.New("x")}, []string{"ValidateOptions"}},
+		{"read subjects fails", &fakeImpl{subjectsErr: errors.New("x")}, []string{"ValidateOptions", "ReadSubjects"}},
+		{"serialize fails", &fakeImpl{serializeErr: errors.New("x")}, []string{"ValidateOptions", "ReadSubjects", "Serialize"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			w := &Writer{}
 			w.SetImplementation(tc.fake)
-			if err := w.AttestVSAV1([]string{"a"}); err == nil {
-				t.Fatal("expected error, got nil")
+			if err := w.AttestVSAV1(nil); err == nil {
+				t.Fatal("expected error")
 			}
 			assertCalls(t, tc.fake.calls, tc.wantCalls)
 		})
 	}
+}
+
+func TestAttestStatementErrorPropagates(t *testing.T) {
+	t.Parallel()
+	// A base predicate of the wrong concrete type makes the version writer's
+	// Statement fail, after ReadSubjects and before Serialize.
+	fake := &fakeImpl{}
+	w := &Writer{}
+	w.SetImplementation(fake)
+	err := w.AttestVSAV1(nil, WithPredicate(&buildv1.Provenance{}))
+	if err == nil {
+		t.Fatal("expected error from statement generation")
+	}
+	assertCalls(t, fake.calls, []string{"ValidateOptions", "ReadSubjects"})
 }
 
 func TestOptionFnError(t *testing.T) {
@@ -106,7 +126,7 @@ func assertCalls(t *testing.T, got, want []string) {
 	}
 	for i := range want {
 		if got[i] != want[i] {
-			t.Fatalf("call %d mismatch: got %q want %q (full: %v)", i, got[i], want[i], got)
+			t.Fatalf("call %d: got %q want %q (full: %v)", i, got[i], want[i], got)
 		}
 	}
 }

@@ -7,8 +7,7 @@ import intoto "github.com/in-toto/attestation/go/v1"
 
 // fakeImpl is a hand-written test double for attesterImpl. It records the order
 // in which its methods are invoked and returns programmable canned values, so
-// tests can assert orchestration without touching the filesystem. We can swap
-// this for a generated mock (e.g. counterfeiter) later if needed.
+// tests can assert orchestration without touching the filesystem.
 type fakeImpl struct {
 	calls []string
 
@@ -16,9 +15,6 @@ type fakeImpl struct {
 
 	subjects    []*intoto.ResourceDescriptor
 	subjectsErr error
-
-	stmt   *intoto.Statement
-	genErr error
 
 	data         []byte
 	serializeErr error
@@ -34,21 +30,6 @@ func (f *fakeImpl) ValidateOptions(*Options) error {
 func (f *fakeImpl) ReadSubjects(*Options, []string) ([]*intoto.ResourceDescriptor, error) {
 	f.calls = append(f.calls, "ReadSubjects")
 	return f.subjects, f.subjectsErr
-}
-
-func (f *fakeImpl) GenerateSlsaProvenanceV1Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error) {
-	f.calls = append(f.calls, "GenerateSlsaProvenanceV1Statement")
-	return f.stmt, f.genErr
-}
-
-func (f *fakeImpl) GenerateSlsaProvenanceV02Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error) {
-	f.calls = append(f.calls, "GenerateSlsaProvenanceV02Statement")
-	return f.stmt, f.genErr
-}
-
-func (f *fakeImpl) GenerateVsaV1Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error) {
-	f.calls = append(f.calls, "GenerateVsaV1Statement")
-	return f.stmt, f.genErr
 }
 
 func (f *fakeImpl) Serialize(*Options, *intoto.Statement) ([]byte, error) {

@@ -123,41 +123,6 @@ func TestWrite(t *testing.T) {
 	}
 }
 
-func TestBuildStatement(t *testing.T) {
-	t.Parallel()
-	subjects := []*intoto.ResourceDescriptor{{Name: "x"}}
-
-	t.Run("nil-predicate-yields-empty-struct", func(t *testing.T) {
-		stmt, err := buildStatement("https://example.com/p", subjects, nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if stmt.GetType() != intoto.StatementTypeUri {
-			t.Fatalf("unexpected type: %q", stmt.GetType())
-		}
-		if stmt.GetPredicate() == nil || len(stmt.GetPredicate().GetFields()) != 0 {
-			t.Fatalf("expected empty predicate struct, got %v", stmt.GetPredicate())
-		}
-		if len(stmt.GetSubject()) != 1 {
-			t.Fatalf("expected subjects to be carried through")
-		}
-	})
-
-	t.Run("predicate-converted", func(t *testing.T) {
-		pred, err := structpb.NewStruct(map[string]any{"k": "v"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		stmt, err := buildStatement("https://example.com/p", subjects, pred)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if stmt.GetPredicate().GetFields()["k"].GetStringValue() != "v" {
-			t.Fatalf("predicate not converted: %v", stmt.GetPredicate())
-		}
-	})
-}
-
 func defaultOptionsPtr() *Options {
 	o := defaultOptions()
 	return &o

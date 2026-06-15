@@ -106,10 +106,7 @@ func addBuild(parent *cobra.Command) {
 			if err != nil {
 				return err
 			}
-			opts, err := buildAttestOptions(cmd, version, f)
-			if err != nil {
-				return err
-			}
+			opts := buildAttestOptions(cmd, f)
 			w, err := outOpts.GetWriter()
 			if err != nil {
 				return err
@@ -177,19 +174,14 @@ func registerBuildFlags(cmd *cobra.Command, predicateVersion *string, f *buildFl
 	}
 }
 
-// buildAttestOptions translates the set flags into library options for the
-// selected version, mapping modern names to older fields and rejecting flags
-// that do not apply to the chosen version.
-func buildAttestOptions(cmd *cobra.Command, version attest.AttestationVersion, f *buildFlags) ([]attest.OptFn, error) {
-	isV1 := version == attest.SlsaProvenanceV1
+// buildAttestOptions translates the set flags into canonical library options.
+// Flags use modern (v1) names; the library maps them to the selected predicate
+// version and rejects options that the version does not support. Hidden legacy
+// aliases (--materials, --parameters, etc.) are bound to the same targets as
+// their canonical flags, so they are handled by the same cases here.
+func buildAttestOptions(cmd *cobra.Command, f *buildFlags) []attest.OptFn {
 	changed := func(names ...string) bool {
 		return slices.ContainsFunc(names, cmd.Flags().Changed)
-	}
-	v1Only := func(flag string) error {
-		return fmt.Errorf("--%s only applies to predicate-version v1", flag)
-	}
-	v02Only := func(flag string) error {
-		return fmt.Errorf("--%s only applies to predicate-version v0.2", flag)
 	}
 
 	var opts []attest.OptFn
@@ -200,112 +192,58 @@ func buildAttestOptions(cmd *cobra.Command, version attest.AttestationVersion, f
 	if changed("builder-id") {
 		opts = append(opts, attest.WithBuilderID(f.builderID))
 	}
-
 	if changed("external-parameters", "parameters") {
-		if isV1 {
-			opts = append(opts, attest.WithExternalParameters(f.externalParameters.Value))
-		} else {
-			opts = append(opts, attest.WithParameters(f.externalParameters.Value))
-		}
+		opts = append(opts, attest.WithExternalParameters(f.externalParameters.Value))
 	}
 	if changed("resolved-dependency", "materials") {
-		if isV1 {
-			opts = append(opts, attest.WithResolvedDependencies(f.resolvedDeps.Values...))
-		} else {
-			opts = append(opts, attest.WithMaterials(f.resolvedDeps.Values...))
-		}
+		opts = append(opts, attest.WithResolvedDependencies(f.resolvedDeps.Values...))
 	}
 	if changed("invocation-id", "build-invocation-id") {
-		if isV1 {
-			opts = append(opts, attest.WithInvocationID(f.invocationID))
-		} else {
-			opts = append(opts, attest.WithBuildInvocationID(f.invocationID))
-		}
+		opts = append(opts, attest.WithInvocationID(f.invocationID))
 	}
 	if changed("started-on", "build-started-on") {
-		if isV1 {
-			opts = append(opts, attest.WithStartedOn(*f.startedOn.Value))
-		} else {
-			opts = append(opts, attest.WithBuildStartedOn(*f.startedOn.Value))
-		}
+		opts = append(opts, attest.WithStartedOn(*f.startedOn.Value))
 	}
 	if changed("finished-on", "build-finished-on") {
-		if isV1 {
-			opts = append(opts, attest.WithFinishedOn(*f.finishedOn.Value))
-		} else {
-			opts = append(opts, attest.WithBuildFinishedOn(*f.finishedOn.Value))
-		}
+		opts = append(opts, attest.WithFinishedOn(*f.finishedOn.Value))
 	}
 
-	// Modern v1-only fields.
+	// Modern v1-only fields (the library errors if used while targeting v0.2).
 	if changed("internal-parameters") {
-		if !isV1 {
-			return nil, v1Only("internal-parameters")
-		}
 		opts = append(opts, attest.WithInternalParameters(f.internalParameters.Value))
 	}
 	if changed("builder-version") {
-		if !isV1 {
-			return nil, v1Only("builder-version")
-		}
 		opts = append(opts, attest.WithBuilderVersion(f.builderVersion.Values))
 	}
 	if changed("builder-dependency") {
-		if !isV1 {
-			return nil, v1Only("builder-dependency")
-		}
 		opts = append(opts, attest.WithBuilderDependencies(f.builderDeps.Values...))
 	}
 	if changed("byproduct") {
-		if !isV1 {
-			return nil, v1Only("byproduct")
-		}
 		opts = append(opts, attest.WithByproducts(f.byproducts.Values...))
 	}
 
-	// v0.2-only fields.
+	// v0.2-only fields (the library errors if used while targeting v1).
 	if changed("config-source-uri") {
-		if isV1 {
-			return nil, v02Only("config-source-uri")
-		}
 		opts = append(opts, attest.WithConfigSourceURI(f.configSourceURI))
 	}
 	if changed("config-source-digest") {
-		if isV1 {
-			return nil, v02Only("config-source-digest")
-		}
 		opts = append(opts, attest.WithConfigSourceDigest(f.configSourceDigest.Values))
 	}
 	if changed("config-source-entry-point") {
-		if isV1 {
-			return nil, v02Only("config-source-entry-point")
-		}
 		opts = append(opts, attest.WithConfigSourceEntryPoint(f.configSourceEntryPoint))
 	}
 	if changed("environment") {
-		if isV1 {
-			return nil, v02Only("environment")
-		}
 		opts = append(opts, attest.WithEnvironment(f.environment.Value))
 	}
 	if changed("build-config") {
-		if isV1 {
-			return nil, v02Only("build-config")
-		}
 		opts = append(opts, attest.WithBuildConfig(f.buildConfig.Value))
 	}
 	if changed("reproducible") {
-		if isV1 {
-			return nil, v02Only("reproducible")
-		}
 		opts = append(opts, attest.WithReproducible(f.reproducible))
 	}
 	if changed("completeness-parameters", "completeness-environment", "completeness-materials") {
-		if isV1 {
-			return nil, v02Only("completeness-*")
-		}
 		opts = append(opts, attest.WithCompleteness(f.completenessParams, f.completenessEnv, f.completenessMaterials))
 	}
 
-	return opts, nil
+	return opts
 }

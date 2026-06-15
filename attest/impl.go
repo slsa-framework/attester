@@ -15,37 +15,21 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// attesterImpl is the internal implementation seam for the Writer. The public
-// Attest* methods orchestrate calls to these atomic operations, which lets us
-// mock the implementation in tests.
+// attesterImpl is the version-independent implementation seam for the Writer.
+// Statement generation is owned by the per-version generator packages, so this
+// seam only covers the shared pipeline steps, which lets us mock them in tests.
 type attesterImpl interface {
 	// ValidateOptions checks that the resolved Options are coherent.
 	ValidateOptions(*Options) error
-
 	// ReadSubjects hashes the given subject paths into resource descriptors.
 	ReadSubjects(*Options, []string) ([]*intoto.ResourceDescriptor, error)
-
-	// GenerateSlsaProvenanceV1Statement builds an in-toto statement carrying a
-	// SLSA Build provenance v1 predicate.
-	GenerateSlsaProvenanceV1Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error)
-
-	// GenerateSlsaProvenanceV02Statement builds an in-toto statement carrying a
-	// SLSA Build provenance v0.2 predicate.
-	GenerateSlsaProvenanceV02Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error)
-
-	// GenerateVsaV1Statement builds an in-toto statement carrying a SLSA
-	// Verification Summary Attestation v1 predicate.
-	GenerateVsaV1Statement(*Options, []*intoto.ResourceDescriptor) (*intoto.Statement, error)
-
 	// Serialize renders a statement to its wire representation.
 	Serialize(*Options, *intoto.Statement) ([]byte, error)
-
 	// Write emits the serialized attestation to the configured destination.
 	Write(*Options, []byte) error
 }
 
-// defaultImpl is the production implementation of attesterImpl. The format
-// generators are filled in by subsequent chunks.
+// defaultImpl is the production implementation of attesterImpl.
 type defaultImpl struct{}
 
 // ValidateOptions checks the resolved options before any work is done.

@@ -3,6 +3,12 @@
 
 package attest
 
+import (
+	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
+	buildgenv02 "github.com/slsa-framework/slsa-attester/attest/build/v02"
+	vsagenv1 "github.com/slsa-framework/slsa-attester/attest/vsa/v1"
+)
+
 // AttestationVersion is a typed identifier for one of the attestation formats
 // (predicate type + version) the Writer knows how to generate. It is passed to
 // Writer.Attest to select the format to produce.
@@ -17,12 +23,12 @@ const (
 	VsaV1 AttestationVersion = "vsa-v1"
 )
 
-// Predicate type URIs for the supported formats. These live here for now and
-// are expected to be upstreamed into slsa-core.
+// Predicate type URIs for the supported formats, sourced from the per-version
+// generator packages so there is a single definition of each.
 const (
-	PredicateTypeSlsaProvenanceV1  = "https://slsa.dev/provenance/v1"
-	PredicateTypeSlsaProvenanceV02 = "https://slsa.dev/provenance/v0.2"
-	PredicateTypeVsaV1             = "https://slsa.dev/verification_summary/v1"
+	PredicateTypeSlsaProvenanceV1  = buildgenv1.PredicateTypeURI
+	PredicateTypeSlsaProvenanceV02 = buildgenv02.PredicateTypeURI
+	PredicateTypeVsaV1             = vsagenv1.PredicateTypeURI
 )
 
 // predicateTypeURI maps a known AttestationVersion to its predicate type URI.
