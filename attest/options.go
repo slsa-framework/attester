@@ -34,6 +34,15 @@ type Options struct {
 	// Signer, when set, is used to sign the generated attestation. Unused for
 	// now (see Signer).
 	Signer Signer
+
+	// BuildType and BuilderID are build provenance content fields whose name
+	// and semantics are identical across provenance versions, so they are
+	// shared rather than version-specific.
+	BuildType string
+	BuilderID string
+
+	// ProvenanceV1 holds content specific to SLSA build provenance v1.
+	ProvenanceV1 ProvenanceV1Options
 }
 
 // defaultOptions returns the baseline Options before any OptFn is applied.
@@ -75,6 +84,24 @@ func WithPredicate(p proto.Message) OptFn {
 func WithSigner(s Signer) OptFn {
 	return func(o *Options) error {
 		o.Signer = s
+		return nil
+	}
+}
+
+// WithBuildType sets the build type URI. It is shared by build provenance v1
+// (buildDefinition.buildType) and v0.2 (buildType).
+func WithBuildType(buildType string) OptFn {
+	return func(o *Options) error {
+		o.BuildType = buildType
+		return nil
+	}
+}
+
+// WithBuilderID sets the builder id. It is shared by build provenance v1
+// (runDetails.builder.id) and v0.2 (builder.id).
+func WithBuilderID(id string) OptFn {
+	return func(o *Options) error {
+		o.BuilderID = id
 		return nil
 	}
 }
