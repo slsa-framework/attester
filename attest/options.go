@@ -46,6 +46,9 @@ type Options struct {
 
 	// ProvenanceV02 holds content specific to SLSA build provenance v0.2.
 	ProvenanceV02 ProvenanceV02Options
+
+	// VSAV1 holds content specific to the verification summary attestation v1.
+	VSAV1 VSAV1Options
 }
 
 // defaultOptions returns the baseline Options before any OptFn is applied.
