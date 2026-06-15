@@ -43,6 +43,9 @@ type Options struct {
 
 	// ProvenanceV1 holds content specific to SLSA build provenance v1.
 	ProvenanceV1 ProvenanceV1Options
+
+	// ProvenanceV02 holds content specific to SLSA build provenance v0.2.
+	ProvenanceV02 ProvenanceV02Options
 }
 
 // defaultOptions returns the baseline Options before any OptFn is applied.
