@@ -37,6 +37,7 @@ func resolveVsaVersion(v string) (attest.AttestationVersion, error) {
 
 // vsaFlags holds the targets the vsa command's flags write into.
 type vsaFlags struct {
+	predicate          *flagvalue.RawJSON
 	verifierID         string
 	timeVerified       *flagvalue.Time
 	resourceURI        string
@@ -51,6 +52,7 @@ type vsaFlags struct {
 
 func newVsaFlags() *vsaFlags {
 	return &vsaFlags{
+		predicate:         &flagvalue.RawJSON{},
 		timeVerified:      &flagvalue.Time{},
 		policyDigest:      &flagvalue.StringMap{},
 		inputAttestations: &flagvalue.ResourceDescriptorSlice{},
@@ -87,6 +89,11 @@ func addVSA(parent *cobra.Command) {
 			if err != nil {
 				return err
 			}
+			predOpts, err := predicateOptions(version, f.predicate)
+			if err != nil {
+				return err
+			}
+			opts = append(opts, predOpts...)
 			opts = append(opts, vsaAttestOptions(cmd, f)...)
 			w, err := outOpts.GetWriter()
 			if err != nil {
@@ -120,6 +127,8 @@ func registerVsaFlags(cmd *cobra.Command, predicateVersion *string, f *vsaFlags)
 	flags.StringVar(predicateVersion, "predicate-version", *predicateVersion,
 		"SLSA VSA version to generate (v1)")
 
+	flags.Var(f.predicate, "predicate",
+		"base predicate as JSON or @file, matching the official SLSA proto for the selected version; content flags are merged onto it")
 	flags.StringVar(&f.verifierID, "verifier-id", "", "verifier id URI")
 	flags.Var(f.timeVerified, "time-verified", "verification time, RFC3339")
 	flags.StringVar(&f.resourceURI, "resource-uri", "", "URI of the resource that was verified")

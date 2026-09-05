@@ -15,6 +15,7 @@ import (
 var (
 	_ pflag.Value = (*ResourceDescriptorSlice)(nil)
 	_ pflag.Value = (*SubjectSlice)(nil)
+	_ pflag.Value = (*RawJSON)(nil)
 	_ pflag.Value = (*StringMap)(nil)
 	_ pflag.Value = (*Uint64Map)(nil)
 	_ pflag.Value = (*Struct)(nil)
@@ -159,6 +160,35 @@ func TestUint64Map(t *testing.T) {
 	}
 	if err := m.Set("x=notanint"); err == nil {
 		t.Fatal("expected error for non-integer")
+	}
+}
+
+func TestRawJSON(t *testing.T) {
+	t.Parallel()
+	r := &RawJSON{}
+	if err := r.Set(`{"k":"v"}`); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(r.Data) != `{"k":"v"}` {
+		t.Fatalf("unexpected data: %s", r.Data)
+	}
+
+	path := filepath.Join(t.TempDir(), "doc.json")
+	if err := os.WriteFile(path, []byte(`{"from":"file"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Set("@" + path); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(r.Data) != `{"from":"file"}` {
+		t.Fatalf("unexpected data: %s", r.Data)
+	}
+
+	if err := r.Set(`{not json`); err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+	if err := r.Set("@/no/such/file.json"); err == nil {
+		t.Fatal("expected error for missing file")
 	}
 }
 

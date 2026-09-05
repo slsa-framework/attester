@@ -41,6 +41,8 @@ func resolveBuildVersion(v string) (attest.AttestationVersion, error) {
 // names are canonical (modern, v1-style); the value is mapped to the field
 // appropriate for the selected predicate version at run time.
 type buildFlags struct {
+	predicate *flagvalue.RawJSON
+
 	buildType string
 	builderID string
 
@@ -68,6 +70,7 @@ type buildFlags struct {
 
 func newBuildFlags() *buildFlags {
 	return &buildFlags{
+		predicate:          &flagvalue.RawJSON{},
 		externalParameters: &flagvalue.Struct{},
 		internalParameters: &flagvalue.Struct{},
 		resolvedDeps:       &flagvalue.ResourceDescriptorSlice{},
@@ -113,6 +116,11 @@ func addBuild(parent *cobra.Command) {
 			if err != nil {
 				return err
 			}
+			predOpts, err := predicateOptions(version, f.predicate)
+			if err != nil {
+				return err
+			}
+			opts = append(opts, predOpts...)
 			opts = append(opts, buildAttestOptions(cmd, f)...)
 			w, err := outOpts.GetWriter()
 			if err != nil {
@@ -148,6 +156,8 @@ func registerBuildFlags(cmd *cobra.Command, predicateVersion *string, f *buildFl
 		"SLSA build provenance version to generate (v1, v0.2)")
 
 	// Shared / canonical (modern) flags.
+	flags.Var(f.predicate, "predicate",
+		"base predicate as JSON or @file, matching the official SLSA proto for the selected version; content flags are merged onto it")
 	flags.StringVar(&f.buildType, "build-type", "", "build type URI")
 	flags.StringVar(&f.builderID, "builder-id", "", "builder id URI")
 	flags.Var(f.externalParameters, "external-parameters", "external parameters as JSON or @file (v0.2: invocation.parameters)")

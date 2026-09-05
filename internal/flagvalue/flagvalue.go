@@ -11,6 +11,7 @@ package flagvalue
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -222,6 +223,29 @@ func (m *Uint64Map) Set(in string) error {
 func (m *Uint64Map) Type() string { return "key=uint" }
 
 func (m *Uint64Map) String() string { return "" }
+
+// RawJSON holds raw JSON given inline or as @file. Only the JSON syntax is
+// checked at flag-parse time; the schema is validated by whoever consumes the
+// bytes (e.g. a strict proto unmarshal once the target type is known).
+type RawJSON struct {
+	Data []byte
+}
+
+func (r *RawJSON) Set(in string) error {
+	data, err := readJSONOrInline(in)
+	if err != nil {
+		return err
+	}
+	if !json.Valid(data) {
+		return fmt.Errorf("invalid JSON")
+	}
+	r.Data = data
+	return nil
+}
+
+func (r *RawJSON) Type() string { return "json" }
+
+func (r *RawJSON) String() string { return "" }
 
 // Struct holds a structpb.Struct parsed from inline JSON or @file.
 type Struct struct {
