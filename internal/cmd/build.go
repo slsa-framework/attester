@@ -88,16 +88,18 @@ func addBuild(parent *cobra.Command) {
 	predicateVersion := "v1"
 	f := newBuildFlags()
 	var sf *signFlags
+	var subjects *flagvalue.SubjectSlice
 
 	buildCmd := &cobra.Command{
-		Use:   "build [flags] SUBJECT...",
+		Use:   "build [flags] [SUBJECT_FILE...]",
 		Short: "Generate a SLSA build provenance attestation",
-		Long: "Generate a SLSA build provenance attestation over one or more subject\n" +
-			"files. Each subject is hashed and recorded in the statement.\n\n" +
+		Long: "Generate a SLSA build provenance attestation over one or more subjects:\n" +
+			"files given as arguments are hashed and recorded in the statement, and\n" +
+			"digests of artifacts not at hand can be declared with -s algorithm:digest.\n\n" +
 			"Flags use the latest (v1) terminology. When an older predicate version is\n" +
 			"selected with --predicate-version, equivalent fields are mapped to the\n" +
 			"older names automatically.",
-		Args:         cobra.MinimumNArgs(1),
+		Args:         cobra.ArbitraryArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := outOpts.Validate(); err != nil {
@@ -107,7 +109,11 @@ func addBuild(parent *cobra.Command) {
 			if err != nil {
 				return err
 			}
-			opts := buildAttestOptions(cmd, f)
+			opts, err := subjectOptions(args, subjects)
+			if err != nil {
+				return err
+			}
+			opts = append(opts, buildAttestOptions(cmd, f)...)
 			w, err := outOpts.GetWriter()
 			if err != nil {
 				return err
@@ -128,6 +134,7 @@ func addBuild(parent *cobra.Command) {
 
 	outOpts.AddFlags(buildCmd)
 	registerBuildFlags(buildCmd, &predicateVersion, f)
+	subjects = addSubjectFlag(buildCmd)
 	sf = addSignFlags(buildCmd)
 	parent.AddCommand(buildCmd)
 }

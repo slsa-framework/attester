@@ -64,13 +64,16 @@ func addVSA(parent *cobra.Command) {
 	predicateVersion := "v1"
 	f := newVsaFlags()
 	var sf *signFlags
+	var subjects *flagvalue.SubjectSlice
 
 	vsaCmd := &cobra.Command{
-		Use:   "vsa [flags] SUBJECT...",
+		Use:   "vsa [flags] [SUBJECT_FILE...]",
 		Short: "Generate a SLSA verification summary attestation (VSA)",
 		Long: "Generate a SLSA verification summary attestation over one or more\n" +
-			"subject files. Each subject is hashed and recorded in the statement.",
-		Args:         cobra.MinimumNArgs(1),
+			"subjects: files given as arguments are hashed and recorded in the\n" +
+			"statement, and digests of artifacts not at hand can be declared with\n" +
+			"-s algorithm:digest.",
+		Args:         cobra.ArbitraryArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := outOpts.Validate(); err != nil {
@@ -80,7 +83,11 @@ func addVSA(parent *cobra.Command) {
 			if err != nil {
 				return err
 			}
-			opts := vsaAttestOptions(cmd, f)
+			opts, err := subjectOptions(args, subjects)
+			if err != nil {
+				return err
+			}
+			opts = append(opts, vsaAttestOptions(cmd, f)...)
 			w, err := outOpts.GetWriter()
 			if err != nil {
 				return err
@@ -101,6 +108,7 @@ func addVSA(parent *cobra.Command) {
 
 	outOpts.AddFlags(vsaCmd)
 	registerVsaFlags(vsaCmd, &predicateVersion, f)
+	subjects = addSubjectFlag(vsaCmd)
 	sf = addSignFlags(vsaCmd)
 	parent.AddCommand(vsaCmd)
 }

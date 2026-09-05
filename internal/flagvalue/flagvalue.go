@@ -10,8 +10,10 @@
 package flagvalue
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -110,6 +112,56 @@ func parseResourceDescriptorShorthand(in string) (*intoto.ResourceDescriptor, er
 		return nil, fmt.Errorf("empty resource descriptor %q", in)
 	}
 	return rd, nil
+}
+
+// SubjectSlice accumulates subject resource descriptors from repeated flag
+// occurrences given as algorithm:digest, e.g. sha256:<hex>. The syntax and
+// validation mirror the slsa verifier's -s/--subject flag so digests stated at
+// attest time can be restated verbatim at verify time: the algorithm must be
+// one in-toto defines, the digest must be hex of the algorithm's length, and it
+// is normalized to lower case.
+type SubjectSlice struct {
+	Values []*intoto.ResourceDescriptor
+}
+
+func (s *SubjectSlice) Set(in string) error {
+	algoName, digest, ok := strings.Cut(strings.TrimSpace(in), ":")
+	if !ok || algoName == "" || digest == "" {
+		return fmt.Errorf("invalid subject %q: want algorithm:digest, e.g. sha256:<hex>", in)
+	}
+	algo, ok := intoto.HashAlgorithms[algoName]
+	if !ok {
+		return fmt.Errorf("invalid subject %q: unknown digest algorithm %q (want one of %s)", in, algoName, knownAlgorithms())
+	}
+	digest = strings.ToLower(digest)
+	if _, err := hex.DecodeString(digest); err != nil {
+		return fmt.Errorf("invalid subject %q: digest is not hex: %w", in, err)
+	}
+	if want := algo.HexLength() * 2; want > 0 && len(digest) != want {
+		return fmt.Errorf("invalid subject %q: %s digests are %d hex characters, got %d", in, algo, want, len(digest))
+	}
+	s.Values = append(s.Values, &intoto.ResourceDescriptor{
+		Digest: map[string]string{string(algo): digest},
+	})
+	return nil
+}
+
+func (s *SubjectSlice) Type() string { return "algorithm:digest" }
+
+func (s *SubjectSlice) String() string {
+	if len(s.Values) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("[%d subject(s)]", len(s.Values))
+}
+
+func knownAlgorithms() string {
+	names := make([]string, 0, len(intoto.HashAlgorithms))
+	for name := range intoto.HashAlgorithms {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
 }
 
 // StringMap accumulates key=value string entries. Multiple comma-separated pairs

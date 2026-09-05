@@ -14,6 +14,7 @@ import (
 // Compile-time checks that all values satisfy pflag.Value.
 var (
 	_ pflag.Value = (*ResourceDescriptorSlice)(nil)
+	_ pflag.Value = (*SubjectSlice)(nil)
 	_ pflag.Value = (*StringMap)(nil)
 	_ pflag.Value = (*Uint64Map)(nil)
 	_ pflag.Value = (*Struct)(nil)
@@ -83,6 +84,51 @@ func TestResourceDescriptorErrors(t *testing.T) {
 	if err := rd.Set("@/no/such/file.json"); err == nil {
 		t.Fatal("expected error for missing file")
 	}
+}
+
+func TestSubjectSlice(t *testing.T) {
+	t.Parallel()
+	sha := "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4"
+
+	t.Run("valid-and-normalized", func(t *testing.T) {
+		t.Parallel()
+		s := &SubjectSlice{}
+		// Upper-case digests must be normalized to lower case.
+		if err := s.Set("sha256:" + "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if err := s.Set("gitCommit:2f1e83b1e6c58239b0f8a9be6817f4f5f3d98f0f"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(s.Values) != 2 {
+			t.Fatalf("expected 2 values, got %d", len(s.Values))
+		}
+		if got := s.Values[0].GetDigest()["sha256"]; got != sha {
+			t.Fatalf("unexpected digest: %q", got)
+		}
+		if _, ok := s.Values[1].GetDigest()["gitCommit"]; !ok {
+			t.Fatalf("expected gitCommit digest: %v", s.Values[1].GetDigest())
+		}
+	})
+
+	t.Run("errors", func(t *testing.T) {
+		t.Parallel()
+		for _, in := range []string{
+			"",                   // empty
+			"sha256",             // no colon
+			"sha256:",            // no digest
+			":abcd",              // no algorithm
+			"not-an-algo:" + sha, // unknown algorithm
+			"sha256:zz",          // not hex
+			"sha256:abcd",        // wrong length
+			"sha512:" + sha,      // wrong length for algorithm
+		} {
+			s := &SubjectSlice{}
+			if err := s.Set(in); err == nil {
+				t.Errorf("expected error for %q", in)
+			}
+		}
+	})
 }
 
 func TestStringMap(t *testing.T) {

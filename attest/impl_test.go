@@ -70,6 +70,32 @@ func TestReadSubjects(t *testing.T) {
 		}
 	})
 
+	t.Run("appends-declared-subjects", func(t *testing.T) {
+		declared := &intoto.ResourceDescriptor{Digest: map[string]string{"sha256": wantA}}
+		o := defaultOptions()
+		o.Subjects = []*intoto.ResourceDescriptor{declared}
+
+		subs, err := impl.ReadSubjects(&o, []string{pathA})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(subs) != 2 {
+			t.Fatalf("expected hashed + declared subjects, got %d", len(subs))
+		}
+		if subs[0].GetName() != "a.txt" || subs[1] != declared {
+			t.Fatalf("unexpected subjects/order: %v", subs)
+		}
+
+		// Declared subjects alone, with no files to hash.
+		subs, err = impl.ReadSubjects(&o, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(subs) != 1 || subs[0] != declared {
+			t.Fatalf("expected only the declared subject, got %v", subs)
+		}
+	})
+
 	t.Run("unknown-algorithm", func(t *testing.T) {
 		o := defaultOptions()
 		o.HashAlgorithms = []string{"not-an-algo"}

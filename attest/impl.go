@@ -44,10 +44,14 @@ func (*defaultImpl) ValidateOptions(o *Options) error {
 }
 
 // ReadSubjects hashes the subject paths and returns one resource descriptor per
-// unique path, preserving the order in which the paths were given.
+// unique path, preserving the order in which the paths were given. Pre-built
+// descriptors from Options.Subjects are appended after the hashed files.
 func (*defaultImpl) ReadSubjects(o *Options, paths []string) ([]*intoto.ResourceDescriptor, error) {
 	if len(paths) == 0 {
-		return nil, nil
+		if len(o.Subjects) == 0 {
+			return nil, nil
+		}
+		return o.Subjects, nil
 	}
 
 	h := hasher.New()
@@ -79,7 +83,7 @@ func (*defaultImpl) ReadSubjects(o *Options, paths []string) ([]*intoto.Resource
 		subjects = append(subjects, rd)
 	}
 
-	return subjects, nil
+	return append(subjects, o.Subjects...), nil
 }
 
 // Serialize renders the statement as compact, single-line JSON. protojson emits

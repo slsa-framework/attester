@@ -41,6 +41,9 @@ type Options struct {
 	Writer io.Writer
 	// HashAlgorithms are the digest algorithms used to hash subjects (default sha256).
 	HashAlgorithms []string
+	// Subjects are pre-built subject descriptors added to the statement after
+	// the hashed subject files, for artifacts only known by their digest.
+	Subjects []*intoto.ResourceDescriptor
 	// Predicate is an optional base predicate the content options are merged
 	// onto. It must match the target version's concrete predicate type.
 	Predicate proto.Message
@@ -129,6 +132,15 @@ func WithWriter(w io.Writer) OptFn {
 // WithHashAlgorithms sets the digest algorithms used to hash subject files.
 func WithHashAlgorithms(algos ...string) OptFn {
 	return func(o *Options) error { o.HashAlgorithms = algos; return nil }
+}
+
+// WithSubjects appends pre-built subject descriptors for artifacts only known
+// by their digest. They are added to the statement after the hashed files.
+func WithSubjects(subjects ...*intoto.ResourceDescriptor) OptFn {
+	return func(o *Options) error {
+		o.Subjects = append(o.Subjects, subjects...)
+		return nil
+	}
 }
 
 // WithPredicate sets a base predicate the content options are merged onto.
