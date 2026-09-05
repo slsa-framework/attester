@@ -51,7 +51,7 @@ func New() *cobra.Command {
 }
 
 // Execute runs the root command. It returns the error so main can set the exit
-// code; cobra has already printed it to stderr.
+// code cobra has already printed it to stderr.
 func Execute() error {
 	return New().Execute()
 }

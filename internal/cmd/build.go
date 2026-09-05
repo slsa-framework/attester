@@ -87,6 +87,7 @@ func addBuild(parent *cobra.Command) {
 	outOpts := &output.Options{}
 	predicateVersion := "v1"
 	f := newBuildFlags()
+	var sf *signFlags
 
 	buildCmd := &cobra.Command{
 		Use:   "build [flags] SUBJECT...",
@@ -113,6 +114,13 @@ func addBuild(parent *cobra.Command) {
 			}
 			opts = append(opts, attest.WithWriter(w))
 
+			signOpts, done, err := sf.signerOptions()
+			if err != nil {
+				return err
+			}
+			defer done()
+			opts = append(opts, signOpts...)
+
 			writer := &attest.Writer{}
 			return writer.Attest(version, args, opts...)
 		},
@@ -120,6 +128,7 @@ func addBuild(parent *cobra.Command) {
 
 	outOpts.AddFlags(buildCmd)
 	registerBuildFlags(buildCmd, &predicateVersion, f)
+	sf = addSignFlags(buildCmd)
 	parent.AddCommand(buildCmd)
 }
 

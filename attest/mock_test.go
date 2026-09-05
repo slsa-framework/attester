@@ -19,6 +19,9 @@ type fakeImpl struct {
 	data         []byte
 	serializeErr error
 
+	signed  []byte
+	signErr error
+
 	writeErr error
 }
 
@@ -35,6 +38,14 @@ func (f *fakeImpl) ReadSubjects(*Options, []string) ([]*intoto.ResourceDescripto
 func (f *fakeImpl) Serialize(*Options, *intoto.Statement) ([]byte, error) {
 	f.calls = append(f.calls, "Serialize")
 	return f.data, f.serializeErr
+}
+
+func (f *fakeImpl) Sign(_ *Options, data []byte) ([]byte, error) {
+	f.calls = append(f.calls, "Sign")
+	if f.signed != nil {
+		return f.signed, f.signErr
+	}
+	return data, f.signErr
 }
 
 func (f *fakeImpl) Write(*Options, []byte) error {

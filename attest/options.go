@@ -9,15 +9,20 @@ import (
 	"os"
 	"time"
 
+	"github.com/carabiner-dev/signer"
+	signeroptions "github.com/carabiner-dev/signer/options"
 	intoto "github.com/in-toto/attestation/go/v1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// Signer abstracts envelope signing. It is a placeholder for now: the Writer
-// produces bare statements and does not sign them yet.
-type Signer any
+// Signer signs a serialized in-toto statement, returning the signed artifact
+// (a sigstore bundle or a DSSE envelope). It is satisfied by *signer.Signer
+// from github.com/carabiner-dev/signer.
+type Signer interface {
+	SignStatement(data []byte, funcs ...signeroptions.SignOptFn) (signer.SignedArtifact, error)
+}
 
 // Completeness mirrors the SLSA build provenance v0.2 completeness flags. It is a
 // legacy-only concept with no v1 equivalent.
@@ -39,7 +44,9 @@ type Options struct {
 	// Predicate is an optional base predicate the content options are merged
 	// onto. It must match the target version's concrete predicate type.
 	Predicate proto.Message
-	// Signer, when set, signs the attestation. Unused for now.
+	// Signer, when set, signs the serialized statement and the signed artifact
+	// (sigstore bundle or DSSE envelope) is emitted instead of the bare
+	// statement. When nil the statement is emitted unsigned.
 	Signer Signer
 
 	// --- Build provenance content (canonical / modern names) ---

@@ -63,6 +63,7 @@ func addVSA(parent *cobra.Command) {
 	outOpts := &output.Options{}
 	predicateVersion := "v1"
 	f := newVsaFlags()
+	var sf *signFlags
 
 	vsaCmd := &cobra.Command{
 		Use:   "vsa [flags] SUBJECT...",
@@ -86,6 +87,13 @@ func addVSA(parent *cobra.Command) {
 			}
 			opts = append(opts, attest.WithWriter(w))
 
+			signOpts, done, err := sf.signerOptions()
+			if err != nil {
+				return err
+			}
+			defer done()
+			opts = append(opts, signOpts...)
+
 			writer := &attest.Writer{}
 			return writer.Attest(version, args, opts...)
 		},
@@ -93,6 +101,7 @@ func addVSA(parent *cobra.Command) {
 
 	outOpts.AddFlags(vsaCmd)
 	registerVsaFlags(vsaCmd, &predicateVersion, f)
+	sf = addSignFlags(vsaCmd)
 	parent.AddCommand(vsaCmd)
 }
 

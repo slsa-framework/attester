@@ -8,11 +8,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/carabiner-dev/signer"
+	signeroptions "github.com/carabiner-dev/signer/options"
 	intoto "github.com/in-toto/attestation/go/v1"
+	sdsse "github.com/sigstore/protobuf-specs/gen/pb-go/dsse"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -108,6 +112,76 @@ func TestSerialize(t *testing.T) {
 	if decoded["_type"] != intoto.StatementTypeUri {
 		t.Fatalf("unexpected _type: %v", decoded["_type"])
 	}
+}
+
+// fakeSigner is a test double for the Signer interface. It records the payload
+// it was asked to sign and returns a canned artifact or error.
+type fakeSigner struct {
+	artifact signer.SignedArtifact
+	err      error
+	got      []byte
+}
+
+func (f *fakeSigner) SignStatement(data []byte, _ ...signeroptions.SignOptFn) (signer.SignedArtifact, error) {
+	f.got = data
+	return f.artifact, f.err
+}
+
+func TestSign(t *testing.T) {
+	t.Parallel()
+	impl := &defaultImpl{}
+	statement := []byte(`{"_type":"https://in-toto.io/Statement/v1"}`)
+
+	t.Run("no-signer-passes-through", func(t *testing.T) {
+		t.Parallel()
+		o := defaultOptions()
+		data, err := impl.Sign(&o, statement)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !bytes.Equal(data, statement) {
+			t.Fatalf("expected passthrough, got: %s", data)
+		}
+	})
+
+	t.Run("emits-signed-artifact", func(t *testing.T) {
+		t.Parallel()
+		fs := &fakeSigner{
+			artifact: &signer.EnvelopeArtifact{
+				Envelope: &sdsse.Envelope{
+					PayloadType: "https://in-toto.io/Statement/v1",
+					Payload:     statement,
+					Signatures:  []*sdsse.Signature{{Keyid: "test", Sig: []byte("sig")}},
+				},
+			},
+		}
+		o := defaultOptions()
+		o.Signer = fs
+		data, err := impl.Sign(&o, statement)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !bytes.Equal(fs.got, statement) {
+			t.Fatalf("signer got %s, want the serialized statement", fs.got)
+		}
+		var env map[string]any
+		if err := json.Unmarshal(data, &env); err != nil {
+			t.Fatalf("signed output is not valid json: %v", err)
+		}
+		if env["payloadType"] != "https://in-toto.io/Statement/v1" {
+			t.Fatalf("unexpected payloadType: %v", env["payloadType"])
+		}
+	})
+
+	t.Run("signer-error-propagates", func(t *testing.T) {
+		t.Parallel()
+		boom := errors.New("boom")
+		o := defaultOptions()
+		o.Signer = &fakeSigner{err: boom}
+		if _, err := impl.Sign(&o, statement); !errors.Is(err, boom) {
+			t.Fatalf("expected signer error to propagate, got %v", err)
+		}
+	})
 }
 
 func TestWrite(t *testing.T) {

@@ -24,7 +24,7 @@ func runVSA(t *testing.T, args ...string) (map[string]any, error) {
 	root := New()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs(append(append([]string{"vsa", "-o", out}, args...), subject))
+	root.SetArgs(append(append([]string{"vsa", "--sign=false", "-o", out}, args...), subject))
 
 	if err := root.Execute(); err != nil {
 		return nil, err

@@ -111,7 +111,8 @@ func (w *Writer) AttestVSAV1(subjects []string, fn ...OptFn) error {
 }
 
 // write runs the version-independent pipeline: validate, hash subjects, generate
-// the statement with the supplied version writer, serialize, and emit.
+// the statement with the supplied version writer, serialize, sign (when a
+// signer is configured), and emit.
 func (w *Writer) write(opts *Options, subjects []string, gen AttestationWriter) error {
 	impl := w.implementation()
 	if err := impl.ValidateOptions(opts); err != nil {
@@ -126,6 +127,10 @@ func (w *Writer) write(opts *Options, subjects []string, gen AttestationWriter) 
 		return err
 	}
 	data, err := impl.Serialize(opts, stmt)
+	if err != nil {
+		return err
+	}
+	data, err = impl.Sign(opts, data)
 	if err != nil {
 		return err
 	}

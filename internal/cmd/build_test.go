@@ -25,7 +25,7 @@ func runBuild(t *testing.T, args ...string) (map[string]any, error) {
 	root := New()
 	root.SetOut(io.Discard)
 	root.SetErr(io.Discard)
-	root.SetArgs(append(append([]string{"build", "-o", out}, args...), subject))
+	root.SetArgs(append(append([]string{"build", "--sign=false", "-o", out}, args...), subject))
 
 	if err := root.Execute(); err != nil {
 		return nil, err

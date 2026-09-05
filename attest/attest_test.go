@@ -68,7 +68,7 @@ func TestAttestOrchestrationOrder(t *testing.T) {
 	if err := w.AttestSlsaProvenanceV1(nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertCalls(t, fake.calls, []string{"ValidateOptions", "ReadSubjects", "Serialize", "Write"})
+	assertCalls(t, fake.calls, []string{"ValidateOptions", "ReadSubjects", "Serialize", "Sign", "Write"})
 }
 
 func TestAttestShortCircuitsOnError(t *testing.T) {
@@ -81,6 +81,7 @@ func TestAttestShortCircuitsOnError(t *testing.T) {
 		{"validate fails", &fakeImpl{validateErr: errors.New("x")}, []string{"ValidateOptions"}},
 		{"read subjects fails", &fakeImpl{subjectsErr: errors.New("x")}, []string{"ValidateOptions", "ReadSubjects"}},
 		{"serialize fails", &fakeImpl{serializeErr: errors.New("x")}, []string{"ValidateOptions", "ReadSubjects", "Serialize"}},
+		{"sign fails", &fakeImpl{signErr: errors.New("x")}, []string{"ValidateOptions", "ReadSubjects", "Serialize", "Sign"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

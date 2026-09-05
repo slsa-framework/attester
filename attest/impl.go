@@ -25,6 +25,9 @@ type attesterImpl interface {
 	ReadSubjects(*Options, []string) ([]*intoto.ResourceDescriptor, error)
 	// Serialize renders a statement to its wire representation.
 	Serialize(*Options, *intoto.Statement) ([]byte, error)
+	// Sign signs the serialized statement with the configured signer. When no
+	// signer is configured the data passes through unchanged.
+	Sign(*Options, []byte) ([]byte, error)
 	// Write emits the serialized attestation to the configured destination.
 	Write(*Options, []byte) error
 }
@@ -90,6 +93,25 @@ func (*defaultImpl) Serialize(_ *Options, stmt *intoto.Statement) ([]byte, error
 	var buf bytes.Buffer
 	if err := json.Compact(&buf, data); err != nil {
 		return nil, fmt.Errorf("compacting statement json: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+// Sign signs the serialized statement with the configured signer and returns
+// the signed artifact's canonical JSON form (a sigstore bundle or a DSSE
+// envelope, depending on the signer's backend). With no signer configured the
+// bare statement passes through unchanged.
+func (*defaultImpl) Sign(o *Options, data []byte) ([]byte, error) {
+	if o.Signer == nil {
+		return data, nil
+	}
+	artifact, err := o.Signer.SignStatement(data)
+	if err != nil {
+		return nil, fmt.Errorf("signing statement: %w", err)
+	}
+	var buf bytes.Buffer
+	if _, err := artifact.WriteTo(&buf); err != nil {
+		return nil, fmt.Errorf("serializing signed artifact: %w", err)
 	}
 	return buf.Bytes(), nil
 }
