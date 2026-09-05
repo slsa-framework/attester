@@ -88,7 +88,7 @@ func addBuild(parent *cobra.Command) {
 	predicateVersion := "v1"
 	f := newBuildFlags()
 	var sf *signFlags
-	var subjects *flagvalue.SubjectSlice
+	var subjects *subjectFlags
 
 	buildCmd := &cobra.Command{
 		Use:   "build [flags] [SUBJECT_FILE...]",
@@ -109,7 +109,7 @@ func addBuild(parent *cobra.Command) {
 			if err != nil {
 				return err
 			}
-			opts, err := subjectOptions(args, subjects)
+			opts, err := subjects.attestOptions(cmd, args)
 			if err != nil {
 				return err
 			}
@@ -134,7 +134,7 @@ func addBuild(parent *cobra.Command) {
 
 	outOpts.AddFlags(buildCmd)
 	registerBuildFlags(buildCmd, &predicateVersion, f)
-	subjects = addSubjectFlag(buildCmd)
+	subjects = addSubjectFlags(buildCmd)
 	sf = addSignFlags(buildCmd)
 	parent.AddCommand(buildCmd)
 }

@@ -64,7 +64,7 @@ func addVSA(parent *cobra.Command) {
 	predicateVersion := "v1"
 	f := newVsaFlags()
 	var sf *signFlags
-	var subjects *flagvalue.SubjectSlice
+	var subjects *subjectFlags
 
 	vsaCmd := &cobra.Command{
 		Use:   "vsa [flags] [SUBJECT_FILE...]",
@@ -83,7 +83,7 @@ func addVSA(parent *cobra.Command) {
 			if err != nil {
 				return err
 			}
-			opts, err := subjectOptions(args, subjects)
+			opts, err := subjects.attestOptions(cmd, args)
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func addVSA(parent *cobra.Command) {
 
 	outOpts.AddFlags(vsaCmd)
 	registerVsaFlags(vsaCmd, &predicateVersion, f)
-	subjects = addSubjectFlag(vsaCmd)
+	subjects = addSubjectFlags(vsaCmd)
 	sf = addSignFlags(vsaCmd)
 	parent.AddCommand(vsaCmd)
 }
