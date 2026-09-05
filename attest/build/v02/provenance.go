@@ -11,7 +11,7 @@ import (
 	"maps"
 
 	intoto "github.com/in-toto/attestation/go/v1"
-	buildv02 "github.com/slsa-framework/slsa-core/predicates/build/v02"
+	buildv02 "github.com/slsa-framework/protos/build/v02"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"

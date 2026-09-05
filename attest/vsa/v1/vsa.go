@@ -11,7 +11,7 @@ import (
 	"maps"
 
 	intoto "github.com/in-toto/attestation/go/v1"
-	vsav1 "github.com/slsa-framework/slsa-core/predicates/vsa/v1"
+	vsav1 "github.com/slsa-framework/protos/vsa/v1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 

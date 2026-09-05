@@ -6,7 +6,7 @@ package attest
 import (
 	"fmt"
 
-	buildv02 "github.com/slsa-framework/slsa-core/predicates/build/v02"
+	buildv02 "github.com/slsa-framework/protos/build/v02"
 
 	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
 	buildgenv02 "github.com/slsa-framework/slsa-attester/attest/build/v02"

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	intoto "github.com/in-toto/attestation/go/v1"
-	buildv1 "github.com/slsa-framework/slsa-core/predicates/build/v1"
+	buildv1 "github.com/slsa-framework/protos/build/v1"
 )
 
 func TestStatement(t *testing.T) {

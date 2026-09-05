@@ -2,15 +2,13 @@ module github.com/slsa-framework/slsa-attester
 
 go 1.26.0
 
-replace github.com/slsa-framework/slsa-core => ../slsa-core
-
 require (
 	github.com/carabiner-dev/command v0.3.1
 	github.com/carabiner-dev/hasher v0.2.4
 	github.com/carabiner-dev/signer v0.6.2
 	github.com/in-toto/attestation v1.2.0
 	github.com/sigstore/protobuf-specs v0.5.2
-	github.com/slsa-framework/slsa-core v0.0.0
+	github.com/slsa-framework/protos v0.0.0-20260905230943-612c99695f3b
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	google.golang.org/protobuf v1.36.12

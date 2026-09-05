@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
-	buildv02 "github.com/slsa-framework/slsa-core/predicates/build/v02"
-	buildv1 "github.com/slsa-framework/slsa-core/predicates/build/v1"
-	vsav1 "github.com/slsa-framework/slsa-core/predicates/vsa/v1"
+	buildv02 "github.com/slsa-framework/protos/build/v02"
+	buildv1 "github.com/slsa-framework/protos/build/v1"
+	vsav1 "github.com/slsa-framework/protos/vsa/v1"
 )
 
 func TestParsePredicate(t *testing.T) {

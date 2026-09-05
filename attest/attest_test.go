@@ -9,7 +9,7 @@ import (
 	"errors"
 	"testing"
 
-	buildv1 "github.com/slsa-framework/slsa-core/predicates/build/v1"
+	buildv1 "github.com/slsa-framework/protos/build/v1"
 )
 
 // attestTo runs Attest with a buffer writer and returns the decoded statement.
