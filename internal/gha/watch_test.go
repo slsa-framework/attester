@@ -14,6 +14,11 @@ import (
 	gogithub "github.com/google/go-github/v90/github"
 )
 
+// servef writes a canned response body from a test handler.
+func servef(w http.ResponseWriter, format string, args ...any) {
+	fmt.Fprintf(w, format, args...) //nolint:errcheck // test server response
+}
+
 // testClient wires a Client to a fake GitHub API served by mux.
 func testClient(t *testing.T, mux *http.ServeMux) *Client {
 	t.Helper()
@@ -39,7 +44,7 @@ func TestWaitForRunCompletion(t *testing.T) {
 		if polls.Add(1) > 2 {
 			status = "completed"
 		}
-		fmt.Fprintf(w, `{"id": 7, "status": %q, "head_sha": "abc123"}`, status)
+		servef(w, `{"id": 7, "status": %q, "head_sha": "abc123"}`, status)
 	})
 
 	c := testClient(t, mux)
@@ -58,7 +63,7 @@ func TestWaitForRunCompletion(t *testing.T) {
 func TestWaitTimesOut(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/repos/org/proj/actions/runs/7", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"id": 7, "status": "in_progress"}`)
+		servef(w, `{"id": 7, "status": "in_progress"}`)
 	})
 	c := testClient(t, mux)
 	if _, err := c.Wait(t.Context(), WatchOptions{
@@ -82,13 +87,13 @@ func TestWaitSameRunExcludesOwnJob(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/repos/org/proj/actions/runs/7/jobs", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"total_count": 2, "jobs": [
+		servef(w, `{"total_count": 2, "jobs": [
 			{"id": 1, "name": "Attest the build", "status": "in_progress", "runner_name": "runner-9"},
 			{"id": 2, "name": "build", "status": "completed", "conclusion": "success", "runner_name": "runner-3"}
 		]}`)
 	})
 	mux.HandleFunc("/repos/org/proj/actions/runs/7", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"id": 7, "status": "in_progress", "head_sha": "abc123"}`)
+		servef(w, `{"id": 7, "status": "in_progress", "head_sha": "abc123"}`)
 	})
 
 	c := testClient(t, mux)
@@ -106,7 +111,7 @@ func TestWaitWatchedJobStillRunning(t *testing.T) {
 	// other jobs are done.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/repos/org/proj/actions/runs/7/jobs", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"total_count": 2, "jobs": [
+		servef(w, `{"total_count": 2, "jobs": [
 			{"id": 1, "name": "build", "status": "completed", "conclusion": "success"},
 			{"id": 2, "name": "release", "status": "in_progress"}
 		]}`)

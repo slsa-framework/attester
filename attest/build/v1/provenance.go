@@ -46,9 +46,12 @@ type Writer struct {
 	opts Options
 }
 
-// New returns a Writer configured with opts.
-func New(opts Options) *Writer {
-	return &Writer{opts: opts}
+// New returns a Writer configured with opts. A nil opts is treated as empty.
+func New(opts *Options) *Writer {
+	if opts == nil {
+		opts = &Options{}
+	}
+	return &Writer{opts: *opts}
 }
 
 // PredicateType returns the predicate type URI.
@@ -72,7 +75,11 @@ func (w *Writer) predicate() (*buildv1.Provenance, error) {
 		if !ok {
 			return nil, fmt.Errorf("base predicate is %T, want *build.v1.Provenance", w.opts.Base)
 		}
-		p = proto.Clone(base).(*buildv1.Provenance)
+		cloned, ok := proto.Clone(base).(*buildv1.Provenance)
+		if !ok {
+			return nil, fmt.Errorf("cloning base predicate")
+		}
+		p = cloned
 	}
 
 	o := w.opts
@@ -121,7 +128,7 @@ func (w *Writer) predicate() (*buildv1.Provenance, error) {
 			if b.Version == nil {
 				b.Version = map[string]string{}
 			}
-			maps.Copy(b.Version, o.BuilderVersion)
+			maps.Copy(b.GetVersion(), o.BuilderVersion)
 		}
 		if len(o.BuilderDependencies) > 0 {
 			b.BuilderDependencies = append(b.BuilderDependencies, o.BuilderDependencies...)

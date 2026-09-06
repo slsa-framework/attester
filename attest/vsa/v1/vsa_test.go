@@ -12,7 +12,7 @@ import (
 
 func TestStatement(t *testing.T) {
 	t.Parallel()
-	w := New(Options{
+	w := New(&Options{
 		VerifierID:         "https://ex/v",
 		ResourceURI:        "pkg:x@1",
 		PolicyURI:          "https://ex/p",
@@ -53,7 +53,7 @@ func TestStatement(t *testing.T) {
 
 func TestEmptyOptions(t *testing.T) {
 	t.Parallel()
-	stmt, err := New(Options{}).Statement(nil)
+	stmt, err := New(&Options{}).Statement(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestEmptyOptions(t *testing.T) {
 
 func TestWrongBaseType(t *testing.T) {
 	t.Parallel()
-	if _, err := New(Options{Base: &vsav1.VerificationSummary_Policy{}}).Statement(nil); err == nil {
+	if _, err := New(&Options{Base: &vsav1.VerificationSummary_Policy{}}).Statement(nil); err == nil {
 		t.Fatal("expected error for wrong base type")
 	}
 }

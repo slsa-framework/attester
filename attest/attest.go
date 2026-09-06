@@ -15,8 +15,8 @@ import (
 
 	intoto "github.com/in-toto/attestation/go/v1"
 
-	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
 	buildgenv02 "github.com/slsa-framework/slsa-attester/attest/build/v02"
+	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
 	vsagenv1 "github.com/slsa-framework/slsa-attester/attest/vsa/v1"
 )
 
@@ -85,7 +85,7 @@ func (w *Writer) AttestSlsaProvenanceV1(subjects []string, fn ...OptFn) error {
 	if err != nil {
 		return err
 	}
-	return w.write(opts, subjects, buildgenv1.New(genOpts))
+	return w.write(opts, subjects, buildgenv1.New(&genOpts))
 }
 
 // AttestSlsaProvenanceV02 generates a SLSA build provenance v0.2 attestation.
@@ -98,7 +98,7 @@ func (w *Writer) AttestSlsaProvenanceV02(subjects []string, fn ...OptFn) error {
 	if err != nil {
 		return err
 	}
-	return w.write(opts, subjects, buildgenv02.New(genOpts))
+	return w.write(opts, subjects, buildgenv02.New(&genOpts))
 }
 
 // AttestVSAV1 generates a SLSA verification summary attestation v1.
@@ -107,7 +107,8 @@ func (w *Writer) AttestVSAV1(subjects []string, fn ...OptFn) error {
 	if err != nil {
 		return err
 	}
-	return w.write(opts, subjects, vsagenv1.New(mapToVsaV1(opts)))
+	genOpts := mapToVsaV1(opts)
+	return w.write(opts, subjects, vsagenv1.New(&genOpts))
 }
 
 // write runs the version-independent pipeline: validate, hash subjects, generate

@@ -48,7 +48,7 @@ func TestSubjectDigestOnly(t *testing.T) {
 	if !ok || len(subjects) != 1 {
 		t.Fatalf("expected one subject, got: %v", stmt["subject"])
 	}
-	digest := subjects[0].(map[string]any)["digest"].(map[string]any)
+	digest := asMap(t, asMap(t, subjects[0])["digest"])
 	if digest["sha256"] != testDigest {
 		t.Fatalf("unexpected digest: %v", digest)
 	}
@@ -65,11 +65,11 @@ func TestSubjectDigestAfterHashedFiles(t *testing.T) {
 	if !ok || len(subjects) != 2 {
 		t.Fatalf("expected two subjects, got: %v", stmt["subject"])
 	}
-	first := subjects[0].(map[string]any)
+	first := asMap(t, subjects[0])
 	if first["name"] != "subject.txt" {
 		t.Fatalf("expected the hashed file first, got: %v", first)
 	}
-	second := subjects[1].(map[string]any)["digest"].(map[string]any)
+	second := asMap(t, asMap(t, subjects[1])["digest"])
 	if second["sha256"] != testDigest {
 		t.Fatalf("unexpected declared digest: %v", second)
 	}
@@ -85,7 +85,7 @@ func TestSubjectHashAlgorithms(t *testing.T) {
 	if !ok || len(subjects) != 1 {
 		t.Fatalf("expected one subject, got: %v", stmt["subject"])
 	}
-	digest := subjects[0].(map[string]any)["digest"].(map[string]any)
+	digest := asMap(t, asMap(t, subjects[0])["digest"])
 	if digest["sha256"] == nil || digest["sha512"] == nil {
 		t.Fatalf("expected sha256 and sha512 digests, got: %v", digest)
 	}

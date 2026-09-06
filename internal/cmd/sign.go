@@ -52,5 +52,5 @@ func (f *signFlags) signerOptions() ([]attest.OptFn, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return []attest.OptFn{attest.WithSigner(s)}, func() { _ = s.Close() }, nil
+	return []attest.OptFn{attest.WithSigner(s)}, func() { s.Close() }, nil //nolint:errcheck,gosec // nothing to handle at cleanup
 }

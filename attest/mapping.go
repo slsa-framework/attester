@@ -8,8 +8,8 @@ import (
 
 	buildv02 "github.com/slsa-framework/protos/build/v02"
 
-	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
 	buildgenv02 "github.com/slsa-framework/slsa-attester/attest/build/v02"
+	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
 	vsagenv1 "github.com/slsa-framework/slsa-attester/attest/vsa/v1"
 )
 

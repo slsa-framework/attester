@@ -4,43 +4,8 @@
 package cmd
 
 import (
-	"encoding/json"
-	"io"
-	"os"
-	"path/filepath"
 	"testing"
 )
-
-// runBuild executes the build subcommand with args, writing the attestation to a
-// temp file, and returns the decoded statement.
-func runBuild(t *testing.T, args ...string) (map[string]any, error) {
-	t.Helper()
-	dir := t.TempDir()
-	subject := filepath.Join(dir, "subject.txt")
-	if err := os.WriteFile(subject, []byte("data"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	out := filepath.Join(dir, "att.json")
-
-	root := New()
-	root.SetOut(io.Discard)
-	root.SetErr(io.Discard)
-	root.SetArgs(append(append([]string{"build", "--sign=false", "-o", out}, args...), subject))
-
-	if err := root.Execute(); err != nil {
-		return nil, err
-	}
-
-	data, err := os.ReadFile(out)
-	if err != nil {
-		t.Fatalf("reading output: %v", err)
-	}
-	var stmt map[string]any
-	if err := json.Unmarshal(data, &stmt); err != nil {
-		t.Fatalf("decoding output: %v", err)
-	}
-	return stmt, nil
-}
 
 func predicateOf(t *testing.T, stmt map[string]any) map[string]any {
 	t.Helper()
@@ -64,7 +29,7 @@ func TestBuildV1FlagMapping(t *testing.T) {
 	if stmt["predicateType"] != "https://slsa.dev/provenance/v1" {
 		t.Fatalf("unexpected predicateType: %v", stmt["predicateType"])
 	}
-	bd := predicateOf(t, stmt)["buildDefinition"].(map[string]any)
+	bd := asMap(t, predicateOf(t, stmt)["buildDefinition"])
 	if _, ok := bd["resolvedDependencies"]; !ok {
 		t.Fatalf("expected resolvedDependencies in v1: %v", bd)
 	}
@@ -87,7 +52,7 @@ func TestBuildV02FlagMappingToLegacyNames(t *testing.T) {
 	if _, ok := pred["materials"]; !ok {
 		t.Fatalf("expected materials in v0.2: %v", pred)
 	}
-	meta := pred["metadata"].(map[string]any)
+	meta := asMap(t, pred["metadata"])
 	if _, ok := meta["buildInvocationId"]; !ok {
 		t.Fatalf("expected buildInvocationId in v0.2 metadata: %v", meta)
 	}

@@ -65,8 +65,6 @@ func addVSA(parent *cobra.Command) {
 	outOpts := &output.Options{}
 	predicateVersion := "v1"
 	f := newVsaFlags()
-	var sf *signFlags
-	var subjects *subjectFlags
 
 	vsaCmd := &cobra.Command{
 		Use:   "vsa [flags] [SUBJECT_FILE...]",
@@ -77,46 +75,16 @@ func addVSA(parent *cobra.Command) {
 			"-s algorithm:digest.",
 		Args:         cobra.ArbitraryArgs,
 		SilenceUsage: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := outOpts.Validate(); err != nil {
-				return err
-			}
-			version, err := resolveVsaVersion(predicateVersion)
-			if err != nil {
-				return err
-			}
-			opts, err := subjects.attestOptions(cmd, args)
-			if err != nil {
-				return err
-			}
-			predOpts, err := predicateOptions(version, f.predicate)
-			if err != nil {
-				return err
-			}
-			opts = append(opts, predOpts...)
-			opts = append(opts, vsaAttestOptions(cmd, f)...)
-			w, err := outOpts.GetWriter()
-			if err != nil {
-				return err
-			}
-			opts = append(opts, attest.WithWriter(w))
-
-			signOpts, done, err := sf.signerOptions()
-			if err != nil {
-				return err
-			}
-			defer done()
-			opts = append(opts, signOpts...)
-
-			writer := &attest.Writer{}
-			return writer.Attest(version, args, opts...)
-		},
 	}
 
 	outOpts.AddFlags(vsaCmd)
 	registerVsaFlags(vsaCmd, &predicateVersion, f)
-	subjects = addSubjectFlags(vsaCmd)
-	sf = addSignFlags(vsaCmd)
+	subjects := addSubjectFlags(vsaCmd)
+	sf := addSignFlags(vsaCmd)
+	vsaCmd.RunE = attestRunE(outOpts, sf, subjects, f.predicate, &predicateVersion,
+		resolveVsaVersion, func(cmd *cobra.Command) []attest.OptFn {
+			return vsaAttestOptions(cmd, f)
+		})
 	parent.AddCommand(vsaCmd)
 }
 

@@ -4,41 +4,8 @@
 package cmd
 
 import (
-	"encoding/json"
-	"io"
-	"os"
-	"path/filepath"
 	"testing"
 )
-
-// runVSA executes the vsa subcommand with args and returns the decoded statement.
-func runVSA(t *testing.T, args ...string) (map[string]any, error) {
-	t.Helper()
-	dir := t.TempDir()
-	subject := filepath.Join(dir, "subject.txt")
-	if err := os.WriteFile(subject, []byte("data"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	out := filepath.Join(dir, "att.json")
-
-	root := New()
-	root.SetOut(io.Discard)
-	root.SetErr(io.Discard)
-	root.SetArgs(append(append([]string{"vsa", "--sign=false", "-o", out}, args...), subject))
-
-	if err := root.Execute(); err != nil {
-		return nil, err
-	}
-	data, err := os.ReadFile(out)
-	if err != nil {
-		t.Fatalf("reading output: %v", err)
-	}
-	var stmt map[string]any
-	if err := json.Unmarshal(data, &stmt); err != nil {
-		t.Fatalf("decoding output: %v", err)
-	}
-	return stmt, nil
-}
 
 func TestVSAFlagMapping(t *testing.T) {
 	t.Parallel()
@@ -64,14 +31,14 @@ func TestVSAFlagMapping(t *testing.T) {
 	if pred["verificationResult"] != "PASSED" {
 		t.Fatalf("unexpected verificationResult: %v", pred["verificationResult"])
 	}
-	if v := pred["verifier"].(map[string]any); v["id"] != "https://ex/v" {
+	if v := asMap(t, pred["verifier"]); v["id"] != "https://ex/v" {
 		t.Fatalf("unexpected verifier: %v", v)
 	}
-	if levels := pred["verifiedLevels"].([]any); len(levels) != 1 {
+	if levels, ok := pred["verifiedLevels"].([]any); !ok || len(levels) != 1 {
 		t.Fatalf("expected 1 verified level, got %v", levels)
 	}
 	// proto JSON encodes uint64 map values as strings.
-	if dl := pred["dependencyLevels"].(map[string]any); dl["SLSA_BUILD_LEVEL_3"] != "5" {
+	if dl := asMap(t, pred["dependencyLevels"]); dl["SLSA_BUILD_LEVEL_3"] != "5" {
 		t.Fatalf("unexpected dependencyLevels: %v", dl)
 	}
 	if _, ok := pred["inputAttestations"].([]any); !ok {

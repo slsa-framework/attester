@@ -90,8 +90,6 @@ func addBuild(parent *cobra.Command) {
 	outOpts := &output.Options{}
 	predicateVersion := "v1"
 	f := newBuildFlags()
-	var sf *signFlags
-	var subjects *subjectFlags
 
 	buildCmd := &cobra.Command{
 		Use:   "build [flags] [SUBJECT_FILE...]",
@@ -104,46 +102,16 @@ func addBuild(parent *cobra.Command) {
 			"older names automatically.",
 		Args:         cobra.ArbitraryArgs,
 		SilenceUsage: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := outOpts.Validate(); err != nil {
-				return err
-			}
-			version, err := resolveBuildVersion(predicateVersion)
-			if err != nil {
-				return err
-			}
-			opts, err := subjects.attestOptions(cmd, args)
-			if err != nil {
-				return err
-			}
-			predOpts, err := predicateOptions(version, f.predicate)
-			if err != nil {
-				return err
-			}
-			opts = append(opts, predOpts...)
-			opts = append(opts, buildAttestOptions(cmd, f)...)
-			w, err := outOpts.GetWriter()
-			if err != nil {
-				return err
-			}
-			opts = append(opts, attest.WithWriter(w))
-
-			signOpts, done, err := sf.signerOptions()
-			if err != nil {
-				return err
-			}
-			defer done()
-			opts = append(opts, signOpts...)
-
-			writer := &attest.Writer{}
-			return writer.Attest(version, args, opts...)
-		},
 	}
 
 	outOpts.AddFlags(buildCmd)
 	registerBuildFlags(buildCmd, &predicateVersion, f)
-	subjects = addSubjectFlags(buildCmd)
-	sf = addSignFlags(buildCmd)
+	subjects := addSubjectFlags(buildCmd)
+	sf := addSignFlags(buildCmd)
+	buildCmd.RunE = attestRunE(outOpts, sf, subjects, f.predicate, &predicateVersion,
+		resolveBuildVersion, func(cmd *cobra.Command) []attest.OptFn {
+			return buildAttestOptions(cmd, f)
+		})
 	parent.AddCommand(buildCmd)
 }
 
@@ -196,7 +164,7 @@ func registerBuildFlags(cmd *cobra.Command, predicateVersion *string, f *buildFl
 		"environment", "build-config", "reproducible",
 		"completeness-parameters", "completeness-environment", "completeness-materials",
 	} {
-		_ = flags.MarkHidden(name)
+		_ = flags.MarkHidden(name) //nolint:errcheck // hiding known flag names
 	}
 }
 

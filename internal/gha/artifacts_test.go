@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -102,7 +101,7 @@ func TestCollectArtifacts(t *testing.T) {
 	mux := http.NewServeMux()
 	var srvURL string
 	mux.HandleFunc("/repos/org/proj/actions/runs/7/artifacts", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `{"total_count": 2, "artifacts": [
+		servef(w, `{"total_count": 2, "artifacts": [
 			{"id": 5, "name": "release", "archive_download_url": "https://api.example/artifacts/5/zip"},
 			{"id": 6, "name": "debug-logs", "archive_download_url": "https://api.example/artifacts/6/zip"}
 		]}`)
@@ -111,7 +110,7 @@ func TestCollectArtifacts(t *testing.T) {
 		http.Redirect(w, r, srvURL+"/blob.zip", http.StatusFound)
 	})
 	mux.HandleFunc("/blob.zip", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write(zipData)
+		w.Write(zipData) //nolint:errcheck,gosec // test server response
 	})
 
 	c := testClient(t, mux)

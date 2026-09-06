@@ -55,15 +55,15 @@ type Options struct {
 	// --- Build provenance content (canonical / modern names) ---
 	BuildType            string
 	BuilderID            string
-	ExternalParameters   *structpb.Struct // v0.2: invocation.parameters
-	InternalParameters   *structpb.Struct // v1 only
+	ExternalParameters   *structpb.Struct             // v0.2: invocation.parameters
+	InternalParameters   *structpb.Struct             // v1 only
 	ResolvedDependencies []*intoto.ResourceDescriptor // v0.2: materials
-	BuilderVersion       map[string]string // v1 only
+	BuilderVersion       map[string]string            // v1 only
 	BuilderDependencies  []*intoto.ResourceDescriptor // v1 only
 	Byproducts           []*intoto.ResourceDescriptor // v1 only
-	InvocationID         string // v0.2: metadata.buildInvocationId
-	StartedOn            *timestamppb.Timestamp // v0.2: metadata.buildStartedOn
-	FinishedOn           *timestamppb.Timestamp // v0.2: metadata.buildFinishedOn
+	InvocationID         string                       // v0.2: metadata.buildInvocationId
+	StartedOn            *timestamppb.Timestamp       // v0.2: metadata.buildStartedOn
+	FinishedOn           *timestamppb.Timestamp       // v0.2: metadata.buildFinishedOn
 
 	// --- Build provenance content with no v1 equivalent (v0.2 only) ---
 	ConfigSourceURI        string

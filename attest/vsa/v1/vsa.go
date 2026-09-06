@@ -46,9 +46,12 @@ type Writer struct {
 	opts Options
 }
 
-// New returns a Writer configured with opts.
-func New(opts Options) *Writer {
-	return &Writer{opts: opts}
+// New returns a Writer configured with opts. A nil opts is treated as empty.
+func New(opts *Options) *Writer {
+	if opts == nil {
+		opts = &Options{}
+	}
+	return &Writer{opts: *opts}
 }
 
 // PredicateType returns the predicate type URI.
@@ -71,12 +74,16 @@ func (w *Writer) predicate() (*vsav1.VerificationSummary, error) {
 		if !ok {
 			return nil, fmt.Errorf("base predicate is %T, want *vsa.v1.VerificationSummary", w.opts.Base)
 		}
-		p = proto.Clone(base).(*vsav1.VerificationSummary)
+		cloned, ok := proto.Clone(base).(*vsav1.VerificationSummary)
+		if !ok {
+			return nil, fmt.Errorf("cloning base predicate")
+		}
+		p = cloned
 	}
 
 	o := w.opts
 	if o.VerifierID != "" {
-		if p.Verifier == nil {
+		if p.GetVerifier() == nil {
 			p.Verifier = &vsav1.VerificationSummary_Verifier{}
 		}
 		p.Verifier.Id = o.VerifierID
@@ -88,7 +95,7 @@ func (w *Writer) predicate() (*vsav1.VerificationSummary, error) {
 		p.ResourceUri = o.ResourceURI
 	}
 	if o.PolicyURI != "" || len(o.PolicyDigest) > 0 {
-		if p.Policy == nil {
+		if p.GetPolicy() == nil {
 			p.Policy = &vsav1.VerificationSummary_Policy{}
 		}
 		if o.PolicyURI != "" {
@@ -98,7 +105,7 @@ func (w *Writer) predicate() (*vsav1.VerificationSummary, error) {
 			if p.Policy.Digest == nil {
 				p.Policy.Digest = map[string]string{}
 			}
-			maps.Copy(p.Policy.Digest, o.PolicyDigest)
+			maps.Copy(p.GetPolicy().GetDigest(), o.PolicyDigest)
 		}
 	}
 	for _, rd := range o.InputAttestations {
@@ -117,7 +124,7 @@ func (w *Writer) predicate() (*vsav1.VerificationSummary, error) {
 		if p.DependencyLevels == nil {
 			p.DependencyLevels = map[string]uint64{}
 		}
-		maps.Copy(p.DependencyLevels, o.DependencyLevels)
+		maps.Copy(p.GetDependencyLevels(), o.DependencyLevels)
 	}
 	if o.SlsaVersion != "" {
 		p.SlsaVersion = o.SlsaVersion

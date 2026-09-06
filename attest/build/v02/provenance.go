@@ -51,9 +51,12 @@ type Writer struct {
 	opts Options
 }
 
-// New returns a Writer configured with opts.
-func New(opts Options) *Writer {
-	return &Writer{opts: opts}
+// New returns a Writer configured with opts. A nil opts is treated as empty.
+func New(opts *Options) *Writer {
+	if opts == nil {
+		opts = &Options{}
+	}
+	return &Writer{opts: *opts}
 }
 
 // PredicateType returns the predicate type URI.
@@ -76,7 +79,11 @@ func (w *Writer) predicate() (*buildv02.Provenance, error) {
 		if !ok {
 			return nil, fmt.Errorf("base predicate is %T, want *build.v02.Provenance", w.opts.Base)
 		}
-		p = proto.Clone(base).(*buildv02.Provenance)
+		cloned, ok := proto.Clone(base).(*buildv02.Provenance)
+		if !ok {
+			return nil, fmt.Errorf("cloning base predicate")
+		}
+		p = cloned
 	}
 
 	o := w.opts
@@ -84,7 +91,7 @@ func (w *Writer) predicate() (*buildv02.Provenance, error) {
 		p.BuildType = o.BuildType
 	}
 	if o.BuilderID != "" {
-		if p.Builder == nil {
+		if p.GetBuilder() == nil {
 			p.Builder = &buildv02.Builder{}
 		}
 		p.Builder.Id = o.BuilderID
@@ -110,7 +117,7 @@ func (w *Writer) predicate() (*buildv02.Provenance, error) {
 				if cs.Digest == nil {
 					cs.Digest = map[string]string{}
 				}
-				maps.Copy(cs.Digest, o.ConfigSourceDigest)
+				maps.Copy(cs.GetDigest(), o.ConfigSourceDigest)
 			}
 			if o.ConfigSourceEntryPoint != "" {
 				cs.EntryPoint = o.ConfigSourceEntryPoint

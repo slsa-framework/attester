@@ -13,7 +13,7 @@ import (
 func TestStatementMaterialsAndLegacyNames(t *testing.T) {
 	t.Parallel()
 	repro := true
-	w := New(Options{
+	w := New(&Options{
 		BuildType:         "https://ex/bt",
 		BuilderID:         "https://ex/b",
 		Parameters:        nil,
@@ -58,7 +58,7 @@ func TestStatementMaterialsAndLegacyNames(t *testing.T) {
 
 func TestEmptyOptions(t *testing.T) {
 	t.Parallel()
-	stmt, err := New(Options{}).Statement(nil)
+	stmt, err := New(&Options{}).Statement(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestEmptyOptions(t *testing.T) {
 
 func TestWrongBaseType(t *testing.T) {
 	t.Parallel()
-	if _, err := New(Options{Base: &buildv02.Material{}}).Statement(nil); err == nil {
+	if _, err := New(&Options{Base: &buildv02.Material{}}).Statement(nil); err == nil {
 		t.Fatal("expected error for wrong base type")
 	}
 }

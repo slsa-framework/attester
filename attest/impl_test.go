@@ -38,6 +38,7 @@ func TestReadSubjects(t *testing.T) {
 	opts := defaultOptions()
 
 	t.Run("hashes-in-order-and-dedupes", func(t *testing.T) {
+		t.Parallel()
 		// pathA repeated should only appear once and order must be preserved.
 		subs, err := impl.ReadSubjects(&opts, []string{pathA, pathB, pathA})
 		if err != nil {
@@ -55,6 +56,7 @@ func TestReadSubjects(t *testing.T) {
 	})
 
 	t.Run("empty", func(t *testing.T) {
+		t.Parallel()
 		subs, err := impl.ReadSubjects(&opts, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -65,12 +67,14 @@ func TestReadSubjects(t *testing.T) {
 	})
 
 	t.Run("missing-file", func(t *testing.T) {
+		t.Parallel()
 		if _, err := impl.ReadSubjects(&opts, []string{filepath.Join(dir, "nope")}); err == nil {
 			t.Fatal("expected error for missing file")
 		}
 	})
 
 	t.Run("appends-declared-subjects", func(t *testing.T) {
+		t.Parallel()
 		declared := &intoto.ResourceDescriptor{Digest: map[string]string{"sha256": wantA}}
 		o := defaultOptions()
 		o.Subjects = []*intoto.ResourceDescriptor{declared}
@@ -97,6 +101,7 @@ func TestReadSubjects(t *testing.T) {
 	})
 
 	t.Run("unknown-algorithm", func(t *testing.T) {
+		t.Parallel()
 		o := defaultOptions()
 		o.HashAlgorithms = []string{"not-an-algo"}
 		if _, err := impl.ReadSubjects(&o, []string{pathA}); err == nil {

@@ -27,7 +27,7 @@ func TestPredicateBaseMergesWithFlags(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected runDetails from the flags, got: %v", pred)
 	}
-	if rd["builder"].(map[string]any)["id"] != "https://example.com/builder" {
+	if asMap(t, rd["builder"])["id"] != "https://example.com/builder" {
 		t.Fatalf("expected builder id from the flags, got: %v", rd)
 	}
 }

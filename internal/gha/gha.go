@@ -26,7 +26,7 @@ const (
 	envActions    = "GITHUB_ACTIONS"
 	envJob        = "GITHUB_JOB"
 	envRunner     = "RUNNER_NAME"
-	envToken      = "GITHUB_TOKEN"
+	envToken      = "GITHUB_TOKEN" //nolint:gosec // env var name, not a credential
 )
 
 // Client watches one GitHub Actions workflow run.

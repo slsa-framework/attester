@@ -27,6 +27,9 @@ import (
 // larger declared size may be a decompression bomb.
 const maxZipEntrySize = 10 << 30 // 10 GiB
 
+// sha256Algo is the in-toto algorithm name artifacts are hashed with.
+const sha256Algo = "sha256"
+
 // ArtifactOptions tune how the run's artifacts are collected.
 type ArtifactOptions struct {
 	// Expand controls how artifacts are hashed. When true each artifact zip
@@ -94,8 +97,8 @@ func (c *Client) collectArtifact(ctx context.Context, artifact *gogithub.Artifac
 	if err != nil {
 		return nil, fmt.Errorf("creating temp file: %w", err)
 	}
-	defer os.Remove(tmp.Name())
-	defer tmp.Close()
+	defer os.Remove(tmp.Name()) //nolint:errcheck
+	defer tmp.Close()           //nolint:errcheck
 
 	if err := download(ctx, dlURL.String(), tmp); err != nil {
 		return nil, err
@@ -111,14 +114,14 @@ func (c *Client) collectArtifact(ctx context.Context, artifact *gogithub.Artifac
 	return []*intoto.ResourceDescriptor{{
 		Name:   artifact.GetName(),
 		Uri:    artifact.GetArchiveDownloadURL(),
-		Digest: map[string]string{"sha256": digest},
+		Digest: map[string]string{sha256Algo: digest},
 	}}, nil
 }
 
 // download fetches url into w. The artifact download URL returned by the API
 // is pre-signed, so no additional authentication is attached.
-func download(ctx context.Context, url string, w io.Writer) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func download(ctx context.Context, dlURL string, w io.Writer) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, dlURL, nil)
 	if err != nil {
 		return fmt.Errorf("creating download request: %w", err)
 	}
@@ -126,7 +129,7 @@ func download(ctx context.Context, url string, w io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("downloading artifact: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("downloading artifact: HTTP %d", resp.StatusCode)
 	}
@@ -151,10 +154,10 @@ func hashArtifactZip(zipPath, artifactName, artifactURL string) ([]*intoto.Resou
 		return []*intoto.ResourceDescriptor{{
 			Name:   artifactName,
 			Uri:    artifactURL,
-			Digest: map[string]string{"sha256": digest},
+			Digest: map[string]string{sha256Algo: digest},
 		}}, nil
 	}
-	defer zr.Close()
+	defer zr.Close() //nolint:errcheck
 
 	subjects := make([]*intoto.ResourceDescriptor, 0, len(zr.File))
 	for _, zf := range zr.File {
@@ -171,7 +174,7 @@ func hashArtifactZip(zipPath, artifactName, artifactURL string) ([]*intoto.Resou
 		subjects = append(subjects, &intoto.ResourceDescriptor{
 			Name:   artifactName + "/" + entry,
 			Uri:    zipEntryURI(artifactURL, entry),
-			Digest: map[string]string{"sha256": digest},
+			Digest: map[string]string{sha256Algo: digest},
 		})
 	}
 	return subjects, nil
@@ -197,7 +200,7 @@ func sha256ZipEntry(zf *zip.File) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("opening zip entry: %w", err)
 	}
-	defer rc.Close()
+	defer rc.Close() //nolint:errcheck
 	h := sha256.New()
 	if _, err := io.Copy(h, io.LimitReader(rc, maxZipEntrySize)); err != nil {
 		return "", fmt.Errorf("hashing zip entry: %w", err)
@@ -206,12 +209,12 @@ func sha256ZipEntry(zf *zip.File) (string, error) {
 }
 
 // sha256File hashes a file on disk.
-func sha256File(path string) (string, error) {
-	f, err := os.Open(path)
+func sha256File(filePath string) (string, error) {
+	f, err := os.Open(filePath)
 	if err != nil {
 		return "", fmt.Errorf("opening file: %w", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", fmt.Errorf("hashing file: %w", err)
