@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: Copyright 2026 The SLSA Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # create the release and upload binaries, SBOM, attestation
+      id-token: write   # Sigstore keyless signing of the SLSA provenance
+      actions: read     # the attester reads run metadata to attest the build
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Set tag output
+        id: tag
+        run: echo "tag_name=${GITHUB_REF#refs/*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        id: goreleaser
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate SBOM
+        id: sbom
+        uses: carabiner-dev/actions/unpack/sbom@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9
+        with:
+          push-to-release: ${{ steps.tag.outputs.tag_name }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Observe this run and emit a signed SLSA provenance attestation covering
+      # the release artifacts. tejolote collects from the release (goreleaser
+      # publishes straight to it, not as workflow artifacts) and the attestation
+      # is signed with the release job's Sigstore identity. The installer
+      # action verifies the downloaded binary against this file, so it must
+      # land on the release as attestations.jsonl. To be replaced with the
+      # attester's own watch subcommand once it can collect release assets
+      # (dogfooding a release with the binary it is releasing).
+      - name: Generate provenance
+        id: provenance
+        uses: carabiner-dev/actions/slsa/generate@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9
+        with:
+          artifacts: github://${{ github.repository }}/${{ steps.tag.outputs.tag_name }}
+          output: attestations.jsonl
+
+      - name: Publish provenance to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.tag.outputs.tag_name }}
+          ATTESTATION: ${{ steps.provenance.outputs.attestation }}
+        run: gh release upload "${TAG_NAME}" "${ATTESTATION}"

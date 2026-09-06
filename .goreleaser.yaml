@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: Copyright 2026 The SLSA Authors
+# SPDX-License-Identifier: Apache-2.0
+
+project_name: slsa-attester
+version: 2
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - go mod tidy
+    - /bin/bash -c 'if [ -n "$(git --no-pager diff --exit-code go.mod go.sum)" ]; then exit 1; fi'
+
+gomod:
+  proxy: true
+
+builds:
+  - id: release
+    no_unique_dist_dir: true
+    binary: slsa-attester-{{ .Tag }}-{{ .Os }}-{{ .Arch }}
+    main: .
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: darwin
+        goarch: amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -X github.com/slsa-framework/slsa-attester/internal/cmd.version={{ .Tag }}
+
+archives:
+  - formats: binary
+    name_template: slsa-attester-{{ .Tag }}-{{ .Os }}-{{ .Arch }}
+    allow_different_binary_count: true
+
+checksum:
+  disable: true
+
+release:
+  github:
+    owner: slsa-framework
+    name: slsa-attester
+  prerelease: auto
+
+changelog:
+  disable: true
