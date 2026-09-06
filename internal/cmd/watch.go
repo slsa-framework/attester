@@ -132,7 +132,7 @@ func addWatch(parent *cobra.Command) {
 	flags.StringSliceVar(&artifactsFilter, "artifacts-filter", nil,
 		"glob(s) matched against artifact names, only matches are attested")
 	flags.BoolVar(&allowSharedJob, "allow-shared-job", false,
-		"UNSAFE: attest the same job the attester us running on")
+		"UNSAFE: attest even when other steps share the attester's job (and its signing identity)")
 	flags.Var(dependencies, "dependency",
 		"an extra resolved dependency: JSON, @file, or name=,uri=,sha256= shorthand (repeatable)")
 	flags.VarP(subjects, "subject", "s",

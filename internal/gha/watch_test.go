@@ -150,8 +150,9 @@ func TestWaitSameRunRefusesSharedJob(t *testing.T) {
 
 func TestCheckDedicatedJob(t *testing.T) {
 	t.Parallel()
-	// The reusable workflow's own prior steps and runner infrastructure
-	// steps do not break dedication; queued later steps are ignored.
+	// The reusable workflow's own steps, runner infrastructure steps and
+	// pre/post phases do not break dedication; the in-progress step is the
+	// attester's own.
 	job := &gogithub.WorkflowJob{
 		Name: gogithub.Ptr("provenance / attest"),
 		Steps: []*gogithub.TaskStep{
@@ -159,12 +160,24 @@ func TestCheckDedicatedJob(t *testing.T) {
 			{Name: gogithub.Ptr("Locate this workflow's repository"), Status: gogithub.Ptr("completed")},
 			{Name: gogithub.Ptr("Check out the SLSA actions"), Status: gogithub.Ptr("completed")},
 			{Name: gogithub.Ptr("Attest the run"), Status: gogithub.Ptr("in_progress")},
+			{Name: gogithub.Ptr("Attestation summary"), Status: gogithub.Ptr("queued")},
 			{Name: gogithub.Ptr("Upload attestation"), Status: gogithub.Ptr("queued")},
+			{Name: gogithub.Ptr("Post Check out the SLSA actions"), Status: gogithub.Ptr("queued")},
 		},
 	}
 	if err := checkDedicatedJob(job); err != nil {
 		t.Fatalf("reusable workflow job must pass: %v", err)
 	}
+
+	// A foreign step breaks dedication even when it has not run yet: it
+	// shares the job's signing identity.
+	job.Steps = append(job.Steps, &gogithub.TaskStep{
+		Name: gogithub.Ptr("Deploy"), Status: gogithub.Ptr("queued"),
+	})
+	if err := checkDedicatedJob(job); err == nil {
+		t.Fatal("expected refusal for a queued foreign step")
+	}
+	job.Steps = job.Steps[:len(job.Steps)-1]
 
 	job.Steps[1].Name = gogithub.Ptr("Run the build")
 	if err := checkDedicatedJob(job); err == nil {

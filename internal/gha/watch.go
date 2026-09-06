@@ -35,37 +35,59 @@ type WatchOptions struct {
 // steps.
 const statusCompleted = "completed"
 
-// dedicatedJobSteps are the step names allowed to have completed before the
-// attester runs in its own job: the runner's infrastructure steps plus the
-// steps of the attest_actions reusable workflow in slsa-framework/actions
-// (keep in sync with .github/workflows/attest_actions.yml there).
+// statusInProgress is the status the API reports for the step (and job)
+// currently executing.
+const statusInProgress = "in_progress"
+
+// dedicatedJobSteps are the step names allowed to appear in the attester's
+// job besides its own: the runner's infrastructure steps plus the steps of
+// the attest_actions reusable workflow in slsa-framework/actions (keep in
+// sync with .github/workflows/attest_actions.yml there).
 var dedicatedJobSteps = map[string]bool{
 	"Set up job":                        true,
 	"Initialize containers":             true,
+	"Stop containers":                   true,
+	"Complete job":                      true,
 	"Locate this workflow's repository": true,
 	"Check out the SLSA actions":        true,
+	"Attestation summary":               true,
+	"Upload attestation":                true,
 }
 
-// checkDedicatedJob refuses to attest from a job that already ran other
-// steps. Anything that executes earlier in the same job can tamper with the
-// runner (replace the attester, poison the tool cache) and forge the
-// attestation, so the attester must run in a job of its own. This guards
-// against honest misconfiguration; a hostile build step that already ran
-// could equally tamper with this very check, which is why verifiers must
-// also pin the attestation's signing identity.
+// checkDedicatedJob refuses to attest from a job that contains any step
+// besides the attester's own, no matter whether it runs before or after:
+// steps that ran earlier can tamper with the runner (replace the attester,
+// poison the tool cache) and forge the attestation, and every step in the
+// job — including later ones — shares the OIDC workload identity the
+// attestation is signed with, so it could mint an equally-valid signature of
+// its own. The attester must run in a job of its own. This guards against
+// honest misconfiguration; a hostile step that already ran could equally
+// tamper with this very check, which is why verifiers must also pin the
+// attestation's signing identity.
 func checkDedicatedJob(job *gogithub.WorkflowJob) error {
-	var foreign []string
+	foreign := make([]string, 0, len(job.Steps))
 	for _, step := range job.Steps {
-		if step.GetStatus() == statusCompleted && !dedicatedJobSteps[step.GetName()] {
-			foreign = append(foreign, step.GetName())
+		name := step.GetName()
+		switch {
+		case step.GetStatus() == statusInProgress:
+			// The attester's own step (steps run sequentially, so the
+			// in-progress one is the one running this code).
+			continue
+		case dedicatedJobSteps[name]:
+			continue
+		case strings.HasPrefix(name, "Pre ") || strings.HasPrefix(name, "Post "):
+			// Pre/post phases of an action; the action's main step is
+			// always listed too, so a foreign action is caught there.
+			continue
 		}
+		foreign = append(foreign, name)
 	}
 	if len(foreign) == 0 {
 		return nil
 	}
 	return fmt.Errorf(
-		"job %q is not dedicated to attesting: step(s) %q already ran in it and could have tampered with the attester; "+
-			"attest from a separate job (or pass --allow-shared-job to accept the risk)",
+		"job %q is not dedicated to attesting: step(s) %q share the job and its signing identity with the attester; "+
+			"attest from a job with no other steps (or pass --allow-shared-job to accept the risk)",
 		job.GetName(), strings.Join(foreign, ", "))
 }
 
