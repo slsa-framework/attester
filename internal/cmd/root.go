@@ -46,6 +46,7 @@ func New() *cobra.Command {
 
 	addBuild(rootCmd)
 	addVSA(rootCmd)
+	addWatch(rootCmd)
 
 	return rootCmd
 }
