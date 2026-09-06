@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -103,6 +104,71 @@ func TestWaitSameRunExcludesOwnJob(t *testing.T) {
 	}
 	if run.GetID() != 7 {
 		t.Fatalf("unexpected run: %v", run)
+	}
+}
+
+func TestWaitSameRunRefusesSharedJob(t *testing.T) {
+	// Our own job already ran a build step, so the runner may be tampered
+	// with: the watcher must refuse unless AllowSharedJob is set.
+	t.Setenv("GITHUB_ACTIONS", "true")
+	t.Setenv("GITHUB_REPOSITORY", "org/proj")
+	t.Setenv("GITHUB_RUN_ID", "7")
+	t.Setenv("GITHUB_JOB", "build")
+	t.Setenv("RUNNER_NAME", "runner-9")
+	t.Setenv("GITHUB_TOKEN", "")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/org/proj/actions/runs/7/jobs", func(w http.ResponseWriter, _ *http.Request) {
+		servef(w, `{"total_count": 1, "jobs": [
+			{"id": 1, "name": "build", "status": "in_progress", "runner_name": "runner-9", "steps": [
+				{"name": "Set up job", "status": "completed", "number": 1},
+				{"name": "Compile the code", "status": "completed", "number": 2},
+				{"name": "Attest the build", "status": "in_progress", "number": 3}
+			]}
+		]}`)
+	})
+	mux.HandleFunc("/repos/org/proj/actions/runs/7", func(w http.ResponseWriter, _ *http.Request) {
+		servef(w, `{"id": 7, "status": "in_progress", "head_sha": "abc123"}`)
+	})
+
+	c := testClient(t, mux)
+	opts := WatchOptions{PollInterval: 5 * time.Millisecond, Timeout: time.Second}
+	_, err := c.Wait(t.Context(), opts)
+	if err == nil || !strings.Contains(err.Error(), "not dedicated to attesting") {
+		t.Fatalf("expected dedicated-job refusal, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "Compile the code") {
+		t.Fatalf("error must name the offending step, got: %v", err)
+	}
+
+	// The explicit opt-out lets the shared job attest anyway.
+	opts.AllowSharedJob = true
+	if _, err := c.Wait(t.Context(), opts); err != nil {
+		t.Fatalf("unexpected error with AllowSharedJob: %v", err)
+	}
+}
+
+func TestCheckDedicatedJob(t *testing.T) {
+	t.Parallel()
+	// The reusable workflow's own prior steps and runner infrastructure
+	// steps do not break dedication; queued later steps are ignored.
+	job := &gogithub.WorkflowJob{
+		Name: gogithub.Ptr("provenance / attest"),
+		Steps: []*gogithub.TaskStep{
+			{Name: gogithub.Ptr("Set up job"), Status: gogithub.Ptr("completed")},
+			{Name: gogithub.Ptr("Locate this workflow's repository"), Status: gogithub.Ptr("completed")},
+			{Name: gogithub.Ptr("Check out the SLSA actions"), Status: gogithub.Ptr("completed")},
+			{Name: gogithub.Ptr("Attest the run"), Status: gogithub.Ptr("in_progress")},
+			{Name: gogithub.Ptr("Upload attestation"), Status: gogithub.Ptr("queued")},
+		},
+	}
+	if err := checkDedicatedJob(job); err != nil {
+		t.Fatalf("reusable workflow job must pass: %v", err)
+	}
+
+	job.Steps[1].Name = gogithub.Ptr("Run the build")
+	if err := checkDedicatedJob(job); err == nil {
+		t.Fatal("expected refusal for a completed foreign step")
 	}
 }
 

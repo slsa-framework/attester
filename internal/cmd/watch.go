@@ -29,6 +29,7 @@ func addWatch(parent *cobra.Command) {
 		collectArtifacts bool
 		expandArtifacts  bool
 		artifactsFilter  []string
+		allowSharedJob   bool
 	)
 
 	watchCmd := &cobra.Command{
@@ -62,9 +63,10 @@ func addWatch(parent *cobra.Command) {
 			}
 
 			run, err := client.Wait(cmd.Context(), gha.WatchOptions{
-				Jobs:         watchJobs,
-				Timeout:      timeout,
-				PollInterval: pollInterval,
+				Jobs:           watchJobs,
+				Timeout:        timeout,
+				PollInterval:   pollInterval,
+				AllowSharedJob: allowSharedJob,
 			})
 			if err != nil {
 				return err
@@ -128,7 +130,9 @@ func addWatch(parent *cobra.Command) {
 	flags.BoolVar(&expandArtifacts, "expand-artifacts", true,
 		"unpack artifact archives and attest one subject per contained file")
 	flags.StringSliceVar(&artifactsFilter, "artifacts-filter", nil,
-		"glob(s) matched against artifact names; only matches are attested")
+		"glob(s) matched against artifact names, only matches are attested")
+	flags.BoolVar(&allowSharedJob, "allow-shared-job", false,
+		"UNSAFE: attest the same job the attester us running on")
 	flags.Var(dependencies, "dependency",
 		"an extra resolved dependency: JSON, @file, or name=,uri=,sha256= shorthand (repeatable)")
 	flags.VarP(subjects, "subject", "s",

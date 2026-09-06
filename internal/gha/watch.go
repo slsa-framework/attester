@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	gogithub "github.com/google/go-github/v90/github"
@@ -24,6 +25,48 @@ type WatchOptions struct {
 	Timeout time.Duration
 	// PollInterval is how often the run is polled (default 15s).
 	PollInterval time.Duration
+	// AllowSharedJob skips the dedicated-job check when attesting the run
+	// the watcher itself runs in. See checkDedicatedJob for why sharing a
+	// job with build steps is refused by default.
+	AllowSharedJob bool
+}
+
+// statusCompleted is the status the API reports for finished runs, jobs and
+// steps.
+const statusCompleted = "completed"
+
+// dedicatedJobSteps are the step names allowed to have completed before the
+// attester runs in its own job: the runner's infrastructure steps plus the
+// steps of the attest_actions reusable workflow in slsa-framework/actions
+// (keep in sync with .github/workflows/attest_actions.yml there).
+var dedicatedJobSteps = map[string]bool{
+	"Set up job":                        true,
+	"Initialize containers":             true,
+	"Locate this workflow's repository": true,
+	"Check out the SLSA actions":        true,
+}
+
+// checkDedicatedJob refuses to attest from a job that already ran other
+// steps. Anything that executes earlier in the same job can tamper with the
+// runner (replace the attester, poison the tool cache) and forge the
+// attestation, so the attester must run in a job of its own. This guards
+// against honest misconfiguration; a hostile build step that already ran
+// could equally tamper with this very check, which is why verifiers must
+// also pin the attestation's signing identity.
+func checkDedicatedJob(job *gogithub.WorkflowJob) error {
+	var foreign []string
+	for _, step := range job.Steps {
+		if step.GetStatus() == statusCompleted && !dedicatedJobSteps[step.GetName()] {
+			foreign = append(foreign, step.GetName())
+		}
+	}
+	if len(foreign) == 0 {
+		return nil
+	}
+	return fmt.Errorf(
+		"job %q is not dedicated to attesting: step(s) %q already ran in it and could have tampered with the attester; "+
+			"attest from a separate job (or pass --allow-shared-job to accept the risk)",
+		job.GetName(), strings.Join(foreign, ", "))
 }
 
 // Wait polls the watched run until it completes and returns its final state.
@@ -49,8 +92,16 @@ func (c *Client) Wait(ctx context.Context, opts WatchOptions) (*gogithub.Workflo
 		case job != nil:
 			excludeJob = job.GetName()
 			slog.Info("same-run detected; excluding own job", "job", excludeJob)
+			if !opts.AllowSharedJob {
+				if err := checkDedicatedJob(job); err != nil {
+					return nil, err
+				}
+			}
 		default:
 			slog.Info("same-run detected; could not uniquely resolve own job, excluding by key", "job", excludeJob)
+			if !opts.AllowSharedJob {
+				slog.Warn("could not verify the attester runs in a dedicated job")
+			}
 		}
 	}
 
@@ -97,7 +148,7 @@ func (c *Client) runCompleted(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("fetching run: %w", err)
 	}
-	return run.GetStatus() == "completed", nil
+	return run.GetStatus() == statusCompleted, nil
 }
 
 // jobsCompleted reports whether every watched job has completed. With an
@@ -116,7 +167,7 @@ func (c *Client) jobsCompleted(ctx context.Context, jobNames []string, excludeJo
 		if len(jobNames) > 0 && !matchesAnyJobName(name, jobNames) {
 			continue
 		}
-		if job.GetStatus() != "completed" {
+		if job.GetStatus() != statusCompleted {
 			slog.Info("waiting for job", "job", name, "status", job.GetStatus())
 			return false, nil
 		}
