@@ -30,6 +30,7 @@ func addWatch(parent *cobra.Command) {
 		expandArtifacts  bool
 		artifactsFilter  []string
 		allowSharedJob   bool
+		release          string
 	)
 
 	watchCmd := &cobra.Command{
@@ -94,6 +95,13 @@ func addWatch(parent *cobra.Command) {
 				}
 				opts = append(opts, attest.WithSubjects(subs...))
 			}
+			if release != "" {
+				subs, err := client.CollectReleaseAssets(cmd.Context(), release, artifactsFilter)
+				if err != nil {
+					return err
+				}
+				opts = append(opts, attest.WithSubjects(subs...))
+			}
 			if len(subjects.Values) > 0 {
 				opts = append(opts, attest.WithSubjects(subjects.Values...))
 			}
@@ -131,7 +139,9 @@ func addWatch(parent *cobra.Command) {
 	flags.BoolVar(&expandArtifacts, "expand-artifacts", true,
 		"unpack artifact archives and attest one subject per contained file")
 	flags.StringSliceVar(&artifactsFilter, "artifacts-filter", nil,
-		"glob(s) matched against artifact names, only matches are attested")
+		"glob(s) matched against artifact and release asset names, only matches are attested")
+	flags.StringVar(&release, "release", "",
+		"also attest the assets of this release (tag) in the watched repository")
 	flags.BoolVar(&allowSharedJob, "allow-shared-job", false,
 		"UNSAFE: attest even when other steps share the attester's job (and its signing identity)")
 	flags.Var(dependencies, "dependency",
