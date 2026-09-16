@@ -4,8 +4,8 @@
 package cmd
 
 import (
-	"github.com/slsa-framework/slsa-attester/attest"
-	"github.com/slsa-framework/slsa-attester/internal/flagvalue"
+	"github.com/slsa-framework/attester/attest"
+	"github.com/slsa-framework/attester/internal/flagvalue"
 )
 
 // predicateOptions parses the --predicate base into the official SLSA

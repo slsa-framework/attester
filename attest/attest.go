@@ -15,9 +15,9 @@ import (
 
 	intoto "github.com/in-toto/attestation/go/v1"
 
-	buildgenv02 "github.com/slsa-framework/slsa-attester/attest/build/v02"
-	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
-	vsagenv1 "github.com/slsa-framework/slsa-attester/attest/vsa/v1"
+	buildgenv02 "github.com/slsa-framework/attester/attest/build/v02"
+	buildgenv1 "github.com/slsa-framework/attester/attest/build/v1"
+	vsagenv1 "github.com/slsa-framework/attester/attest/vsa/v1"
 )
 
 // ErrUnknownVersion is returned by Attest when handed a format it cannot produce.

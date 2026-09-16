@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	"github.com/slsa-framework/slsa-attester/internal/cmd"
+	"github.com/slsa-framework/attester/internal/cmd"
 )
 
 func main() {

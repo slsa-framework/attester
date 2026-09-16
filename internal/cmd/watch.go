@@ -11,9 +11,9 @@ import (
 	"github.com/carabiner-dev/command/output"
 	"github.com/spf13/cobra"
 
-	"github.com/slsa-framework/slsa-attester/attest"
-	"github.com/slsa-framework/slsa-attester/internal/flagvalue"
-	"github.com/slsa-framework/slsa-attester/internal/gha"
+	"github.com/slsa-framework/attester/attest"
+	"github.com/slsa-framework/attester/internal/flagvalue"
+	"github.com/slsa-framework/attester/internal/gha"
 )
 
 // addWatch attaches the "watch" subcommand to the parent command.
@@ -40,8 +40,9 @@ func addWatch(parent *cobra.Command) {
 			"artifacts.\n\n" +
 			"With no run spec the current run is watched (from the GitHub Actions\n" +
 			"environment). When watching the run it is itself part of, the watcher\n" +
-			"excludes its own job and waits for every sibling job, so it can run as\n" +
-			"the last step of a workflow being attested.",
+			"excludes its own job and waits for every sibling job. That job must be\n" +
+			"dedicated to attesting: other steps sharing it could tamper with the\n" +
+			"attester or its signing identity, so the watcher refuses them.",
 		Args:         cobra.MaximumNArgs(1),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

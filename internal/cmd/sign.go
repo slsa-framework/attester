@@ -10,7 +10,7 @@ import (
 	signeroptions "github.com/carabiner-dev/signer/options"
 	"github.com/spf13/cobra"
 
-	"github.com/slsa-framework/slsa-attester/attest"
+	"github.com/slsa-framework/attester/attest"
 )
 
 // signFlags holds the signing surface shared by the attestation subcommands:

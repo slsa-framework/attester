@@ -16,7 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/slsa-framework/slsa-attester/attest/internal/statement"
+	"github.com/slsa-framework/attester/attest/internal/statement"
 )
 
 // PredicateTypeURI is the SLSA build provenance v1 predicate type.

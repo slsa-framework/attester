@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/slsa-framework/slsa-attester/attest"
-	"github.com/slsa-framework/slsa-attester/internal/flagvalue"
+	"github.com/slsa-framework/attester/attest"
+	"github.com/slsa-framework/attester/internal/flagvalue"
 )
 
 // subjectFlags holds the subject surface shared by the attestation

@@ -8,9 +8,9 @@ import (
 
 	buildv02 "github.com/slsa-framework/protos/build/v02"
 
-	buildgenv02 "github.com/slsa-framework/slsa-attester/attest/build/v02"
-	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
-	vsagenv1 "github.com/slsa-framework/slsa-attester/attest/vsa/v1"
+	buildgenv02 "github.com/slsa-framework/attester/attest/build/v02"
+	buildgenv1 "github.com/slsa-framework/attester/attest/build/v1"
+	vsagenv1 "github.com/slsa-framework/attester/attest/vsa/v1"
 )
 
 // The Writer owns the translation of its single canonical option set into each

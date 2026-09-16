@@ -1,4 +1,4 @@
-module github.com/slsa-framework/slsa-attester
+module github.com/slsa-framework/attester
 
 go 1.26.0
 

@@ -11,8 +11,8 @@ import (
 	"github.com/carabiner-dev/command/output"
 	"github.com/spf13/cobra"
 
-	"github.com/slsa-framework/slsa-attester/attest"
-	"github.com/slsa-framework/slsa-attester/internal/flagvalue"
+	"github.com/slsa-framework/attester/attest"
+	"github.com/slsa-framework/attester/internal/flagvalue"
 )
 
 // vsaVersions maps the user-facing --predicate-version values to the library's

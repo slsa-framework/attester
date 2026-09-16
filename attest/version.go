@@ -4,9 +4,9 @@
 package attest
 
 import (
-	buildgenv02 "github.com/slsa-framework/slsa-attester/attest/build/v02"
-	buildgenv1 "github.com/slsa-framework/slsa-attester/attest/build/v1"
-	vsagenv1 "github.com/slsa-framework/slsa-attester/attest/vsa/v1"
+	buildgenv02 "github.com/slsa-framework/attester/attest/build/v02"
+	buildgenv1 "github.com/slsa-framework/attester/attest/build/v1"
+	vsagenv1 "github.com/slsa-framework/attester/attest/vsa/v1"
 )
 
 // AttestationVersion is a typed identifier for one of the attestation formats
