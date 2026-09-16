@@ -95,6 +95,30 @@ func TestSubjectHashAlgorithms(t *testing.T) {
 	}
 }
 
+func TestSubjectsFromChecksumsFile(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "checksums.txt")
+	if err := os.WriteFile(path, []byte(testDigest+"  released/tool\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// A checksums file alone satisfies the subject requirement.
+	stmt, err := runBuildRaw(t, "--checksums", path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	subjects, ok := stmt["subject"].([]any)
+	if !ok || len(subjects) != 1 {
+		t.Fatalf("expected one subject, got: %v", stmt["subject"])
+	}
+	subject := asMap(t, subjects[0])
+	if subject["name"] != "released/tool" {
+		t.Fatalf("unexpected subject name: %v", subject)
+	}
+	if asMap(t, subject["digest"])["sha256"] != testDigest {
+		t.Fatalf("unexpected digest: %v", subject)
+	}
+}
+
 func TestSubjectErrors(t *testing.T) {
 	t.Parallel()
 	if _, err := runBuildRaw(t); err == nil {

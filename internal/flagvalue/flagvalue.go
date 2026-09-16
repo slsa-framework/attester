@@ -224,6 +224,91 @@ func (m *Uint64Map) Type() string { return "key=uint" }
 
 func (m *Uint64Map) String() string { return "" }
 
+// ChecksumFileSlice accumulates subject resource descriptors from files in
+// coreutils checksum format: one "<digest><whitespace><name>" entry per line,
+// as emitted by sha256sum and friends (the same format slsa-github-generator
+// accepted in its base64-subjects input). The digest algorithm is inferred
+// from the digest length using the in-toto algorithm table, so sha1sum,
+// sha256sum, sha384sum and sha512sum outputs all work. Empty lines are
+// ignored, the coreutils binary-mode "*" name marker is stripped, and a name
+// appearing twice is an error.
+type ChecksumFileSlice struct {
+	Values []*intoto.ResourceDescriptor
+}
+
+func (c *ChecksumFileSlice) Set(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("reading checksums file: %w", err)
+	}
+	subjects, err := parseChecksums(data)
+	if err != nil {
+		return fmt.Errorf("parsing %q: %w", path, err)
+	}
+	c.Values = append(c.Values, subjects...)
+	return nil
+}
+
+func (c *ChecksumFileSlice) Type() string { return "checksumFile" }
+
+func (c *ChecksumFileSlice) String() string {
+	if len(c.Values) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("[%d subject(s)]", len(c.Values))
+}
+
+// checksumAlgos maps digest hex lengths to the algorithm the coreutils tools
+// produce at that length.
+var checksumAlgos = map[int]string{}
+
+func init() {
+	for _, name := range []string{"sha1", "sha256", "sha384", "sha512"} {
+		checksumAlgos[intoto.HashAlgorithms[name].HexLength()*2] = name
+	}
+}
+
+func parseChecksums(data []byte) ([]*intoto.ResourceDescriptor, error) {
+	var subjects []*intoto.ResourceDescriptor
+	seen := map[string]bool{}
+	for line := range strings.SplitSeq(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		digest, name, ok := strings.Cut(line, " ")
+		if !ok {
+			// Try a tab separator (BSD-style tools).
+			digest, name, ok = strings.Cut(line, "\t")
+		}
+		if !ok {
+			return nil, fmt.Errorf("invalid checksum line %q: expected digest and name", line)
+		}
+		digest = strings.ToLower(digest)
+		// Strip the coreutils binary-mode marker.
+		name = strings.TrimPrefix(strings.TrimSpace(name), "*")
+		if name == "" {
+			return nil, fmt.Errorf("missing subject name for digest %q", digest)
+		}
+		if _, err := hex.DecodeString(digest); err != nil {
+			return nil, fmt.Errorf("digest for %q is not hex: %w", name, err)
+		}
+		algo, ok := checksumAlgos[len(digest)]
+		if !ok {
+			return nil, fmt.Errorf("digest for %q has no known algorithm (%d hex chars)", name, len(digest))
+		}
+		if seen[name] {
+			return nil, fmt.Errorf("duplicate subject %q", name)
+		}
+		seen[name] = true
+		subjects = append(subjects, &intoto.ResourceDescriptor{
+			Name:   name,
+			Digest: map[string]string{algo: digest},
+		})
+	}
+	return subjects, nil
+}
+
 // RawJSON holds raw JSON given inline or as @file. Only the JSON syntax is
 // checked at flag-parse time; the schema is validated by whoever consumes the
 // bytes (e.g. a strict proto unmarshal once the target type is known).

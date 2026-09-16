@@ -17,6 +17,7 @@ import (
 // subject files given as arguments are hashed with.
 type subjectFlags struct {
 	subjects       *flagvalue.SubjectSlice
+	checksums      *flagvalue.ChecksumFileSlice
 	hashAlgorithms []string
 }
 
@@ -25,9 +26,14 @@ type subjectFlags struct {
 // -s/--subject so a digest stated at attest time can be restated verbatim at
 // verify time.
 func addSubjectFlags(cmd *cobra.Command) *subjectFlags {
-	f := &subjectFlags{subjects: &flagvalue.SubjectSlice{}}
+	f := &subjectFlags{
+		subjects:  &flagvalue.SubjectSlice{},
+		checksums: &flagvalue.ChecksumFileSlice{},
+	}
 	cmd.Flags().VarP(f.subjects, "subject", "s",
 		"subject as algorithm:digest, eg sha256:<hex> (repeatable)")
+	cmd.Flags().Var(f.checksums, "checksums",
+		"file with subjects in sha256sum format, one digest and name per line (repeatable)")
 	cmd.Flags().StringSliceVar(&f.hashAlgorithms, "hash-algorithms", []string{"sha256"},
 		"digest algorithms to hash the subject files with")
 	return f
@@ -37,8 +43,8 @@ func addSubjectFlags(cmd *cobra.Command) *subjectFlags {
 // digest) and returns the attest options adding the declared digests and the
 // configured hash algorithms.
 func (f *subjectFlags) attestOptions(cmd *cobra.Command, args []string) ([]attest.OptFn, error) {
-	if len(args) == 0 && len(f.subjects.Values) == 0 {
-		return nil, errors.New("at least one subject is required: pass artifact files as arguments or --subject digests")
+	if len(args) == 0 && len(f.subjects.Values) == 0 && len(f.checksums.Values) == 0 {
+		return nil, errors.New("at least one subject is required: pass artifact files as arguments, --subject digests or a --checksums file")
 	}
 	var opts []attest.OptFn
 	if cmd.Flags().Changed("hash-algorithms") {
@@ -46,6 +52,9 @@ func (f *subjectFlags) attestOptions(cmd *cobra.Command, args []string) ([]attes
 	}
 	if len(f.subjects.Values) > 0 {
 		opts = append(opts, attest.WithSubjects(f.subjects.Values...))
+	}
+	if len(f.checksums.Values) > 0 {
+		opts = append(opts, attest.WithSubjects(f.checksums.Values...))
 	}
 	return opts, nil
 }

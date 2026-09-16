@@ -14,6 +14,7 @@ import (
 	"github.com/slsa-framework/attester/attest"
 	"github.com/slsa-framework/attester/internal/flagvalue"
 	"github.com/slsa-framework/attester/internal/gha"
+	"github.com/slsa-framework/attester/internal/sbom"
 )
 
 // addWatch attaches the "watch" subcommand to the parent command.
@@ -21,6 +22,7 @@ func addWatch(parent *cobra.Command) {
 	outOpts := &output.Options{}
 	var sf *signFlags
 	subjects := &flagvalue.SubjectSlice{}
+	checksums := &flagvalue.ChecksumFileSlice{}
 	dependencies := &flagvalue.ResourceDescriptorSlice{}
 	var (
 		watchJobs        []string
@@ -31,6 +33,7 @@ func addWatch(parent *cobra.Command) {
 		artifactsFilter  []string
 		allowSharedJob   bool
 		release          string
+		sboms            []string
 	)
 
 	watchCmd := &cobra.Command{
@@ -102,8 +105,18 @@ func addWatch(parent *cobra.Command) {
 				}
 				opts = append(opts, attest.WithSubjects(subs...))
 			}
+			for _, init := range sboms {
+				subs, err := sbom.CollectSubjects(cmd.Context(), init, artifactsFilter)
+				if err != nil {
+					return err
+				}
+				opts = append(opts, attest.WithSubjects(subs...))
+			}
 			if len(subjects.Values) > 0 {
 				opts = append(opts, attest.WithSubjects(subjects.Values...))
+			}
+			if len(checksums.Values) > 0 {
+				opts = append(opts, attest.WithSubjects(checksums.Values...))
 			}
 
 			w, err := outOpts.GetWriter()
@@ -139,15 +152,19 @@ func addWatch(parent *cobra.Command) {
 	flags.BoolVar(&expandArtifacts, "expand-artifacts", true,
 		"unpack artifact archives and attest one subject per contained file")
 	flags.StringSliceVar(&artifactsFilter, "artifacts-filter", nil,
-		"glob(s) matched against artifact and release asset names, only matches are attested")
+		"glob(s) matched against artifact, release asset and SBOM element names, only matches are attested")
 	flags.StringVar(&release, "release", "",
 		"also attest the assets of this release (tag) in the watched repository")
+	flags.StringArrayVar(&sboms, "sbom", nil,
+		"collector source to fetch SBOMs from, eg fs:sboms/ or release:owner/repo@v1.0.0; their top-level elements are attested (repeatable)")
 	flags.BoolVar(&allowSharedJob, "allow-shared-job", false,
 		"UNSAFE: attest even when other steps share the attester's job (and its signing identity)")
 	flags.Var(dependencies, "dependency",
 		"an extra resolved dependency: JSON, @file, or name=,uri=,sha256= shorthand (repeatable)")
 	flags.VarP(subjects, "subject", "s",
 		"extra subject as algorithm:digest, eg sha256:<hex> (repeatable)")
+	flags.Var(checksums, "checksums",
+		"file with extra subjects in sha256sum format, one digest and name per line (repeatable)")
 
 	outOpts.AddFlags(watchCmd)
 	sf = addSignFlags(watchCmd)

@@ -16,6 +16,7 @@ var (
 	_ pflag.Value = (*ResourceDescriptorSlice)(nil)
 	_ pflag.Value = (*SubjectSlice)(nil)
 	_ pflag.Value = (*RawJSON)(nil)
+	_ pflag.Value = (*ChecksumFileSlice)(nil)
 	_ pflag.Value = (*StringMap)(nil)
 	_ pflag.Value = (*Uint64Map)(nil)
 	_ pflag.Value = (*Struct)(nil)
@@ -161,6 +162,67 @@ func TestUint64Map(t *testing.T) {
 	if err := m.Set("x=notanint"); err == nil {
 		t.Fatal("expected error for non-integer")
 	}
+}
+
+func TestChecksumFileSlice(t *testing.T) {
+	t.Parallel()
+	sha256 := "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4"
+	sha512 := "b09e99c2c541ef4a11916549b4bad1bbb70e1a41f56a3e51fd57f39e18d92283" +
+		"a6ec0c68f446f051a2678de263e30ad3ba0a3e0d3f6f0d227ba76e5b6e1a4a4b"
+
+	writeFile := func(t *testing.T, content string) string {
+		t.Helper()
+		path := filepath.Join(t.TempDir(), "checksums.txt")
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+
+	t.Run("sha256sum-format", func(t *testing.T) {
+		t.Parallel()
+		// Upper-case digest, binary-mode marker and blank lines must all be
+		// handled; the sha512 line infers its algorithm from the length.
+		c := &ChecksumFileSlice{}
+		content := "8F434346648F6B96DF89DDA901C5176B10A6D83961DD3C1AC88B59B2DC327AA4  bin/tool\n" +
+			"\n" +
+			sha256 + " *tool.tar.gz\n" +
+			sha512 + "  big.bin\n"
+		if err := c.Set(writeFile(t, content)); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(c.Values) != 3 {
+			t.Fatalf("expected 3 subjects, got %d", len(c.Values))
+		}
+		if c.Values[0].GetName() != "bin/tool" || c.Values[0].GetDigest()["sha256"] != sha256 {
+			t.Fatalf("unexpected first subject: %v", c.Values[0])
+		}
+		if c.Values[1].GetName() != "tool.tar.gz" {
+			t.Fatalf("binary marker not stripped: %v", c.Values[1])
+		}
+		if c.Values[2].GetDigest()["sha512"] != sha512 {
+			t.Fatalf("expected sha512 digest: %v", c.Values[2])
+		}
+	})
+
+	t.Run("errors", func(t *testing.T) {
+		t.Parallel()
+		for name, content := range map[string]string{
+			"missing-name":   sha256 + "\n",
+			"not-hex":        "zz434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4  x\n",
+			"bad-length":     "abcd  x\n",
+			"duplicate-name": sha256 + "  x\n" + sha256 + "  x\n",
+		} {
+			c := &ChecksumFileSlice{}
+			if err := c.Set(writeFile(t, content)); err == nil {
+				t.Errorf("expected error for %s", name)
+			}
+		}
+		c := &ChecksumFileSlice{}
+		if err := c.Set("/no/such/file"); err == nil {
+			t.Error("expected error for missing file")
+		}
+	})
 }
 
 func TestRawJSON(t *testing.T) {
