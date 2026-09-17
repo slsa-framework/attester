@@ -133,7 +133,11 @@ func addWatch(parent *cobra.Command) {
 			opts = append(opts, signOpts...)
 
 			writer := &attest.Writer{}
-			if err := writer.AttestSlsaProvenanceV1(nil, opts...); err != nil {
+			err = writer.AttestSlsaProvenanceV1(nil, opts...)
+			if cerr := closeWriter(w); cerr != nil && err == nil {
+				err = cerr
+			}
+			if err != nil {
 				return fmt.Errorf("attesting run: %w", err)
 			}
 			return nil

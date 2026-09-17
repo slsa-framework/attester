@@ -4,6 +4,9 @@
 package cmd
 
 import (
+	"io"
+	"os"
+
 	"github.com/carabiner-dev/command/output"
 	"github.com/spf13/cobra"
 
@@ -56,6 +59,24 @@ func attestRunE(
 		opts = append(opts, signOpts...)
 
 		writer := &attest.Writer{}
-		return writer.Attest(version, args, opts...)
+		err = writer.Attest(version, args, opts...)
+		if cerr := closeWriter(w); cerr != nil && err == nil {
+			err = cerr
+		}
+		return err
 	}
+}
+
+// closeWriter closes the output writer when it owns a file handle. GetWriter
+// hands out os.Stdout when no output path is set, and stdout is not ours to
+// close. Leaving the handle open would leak it and, on Windows, keep the
+// output file locked.
+func closeWriter(w io.Writer) error {
+	if w == os.Stdout {
+		return nil
+	}
+	if c, ok := w.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
 }
