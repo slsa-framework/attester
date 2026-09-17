@@ -20,16 +20,22 @@ const BuildType = "https://slsa.dev/buildtypes/watcher/v1"
 
 // Predicate renders the watched run as a SLSA build provenance v1 predicate.
 // The builder is the workflow that ran; the source repository at the run's
-// commit is recorded as a resolved dependency.
-func (c *Client) Predicate(run *gogithub.WorkflowRun) (*buildv1.Provenance, error) {
+// commit is recorded as a resolved dependency. The inputs (from RunInputs)
+// are the triggerer-controlled workflow inputs and are recorded in the
+// external parameters.
+func (c *Client) Predicate(run *gogithub.WorkflowRun, inputs map[string]any) (*buildv1.Provenance, error) {
 	repoURI := fmt.Sprintf("https://github.com/%s/%s", c.Owner, c.Repo)
 
-	external, err := structpb.NewStruct(map[string]any{
+	externalParams := map[string]any{
 		"workflow":   run.GetPath(),
 		"repository": repoURI,
 		"ref":        headRef(run),
 		"event":      run.GetEvent(),
-	})
+	}
+	if len(inputs) > 0 {
+		externalParams["inputs"] = inputs
+	}
+	external, err := structpb.NewStruct(externalParams)
 	if err != nil {
 		return nil, fmt.Errorf("building external parameters: %w", err)
 	}

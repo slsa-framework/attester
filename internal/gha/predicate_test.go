@@ -24,7 +24,7 @@ func TestPredicate(t *testing.T) {
 		UpdatedAt:    &gogithub.Timestamp{Time: time.Unix(1750000600, 0).UTC()},
 	}
 
-	pred, err := c.Predicate(run)
+	pred, err := c.Predicate(run, map[string]any{"environment": "prod", "skip-tests": true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -53,6 +53,19 @@ func TestPredicate(t *testing.T) {
 	ext := pred.GetBuildDefinition().GetExternalParameters().AsMap()
 	if ext["workflow"] != ".github/workflows/ci.yml" || ext["event"] != "push" || ext["ref"] != "refs/heads/main" {
 		t.Fatalf("unexpected external parameters: %v", ext)
+	}
+	inputs, ok := ext["inputs"].(map[string]any)
+	if !ok || inputs["environment"] != "prod" || inputs["skip-tests"] != true {
+		t.Fatalf("unexpected inputs in external parameters: %v", ext["inputs"])
+	}
+
+	// Without inputs the key must not appear at all.
+	pred, err = c.Predicate(run, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok := pred.GetBuildDefinition().GetExternalParameters().AsMap()["inputs"]; ok {
+		t.Fatal("empty inputs must not be recorded")
 	}
 }
 
