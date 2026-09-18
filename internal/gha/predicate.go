@@ -4,7 +4,9 @@
 package gha
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	gogithub "github.com/google/go-github/v90/github"
@@ -20,16 +22,15 @@ const BuildType = "https://slsa.dev/buildtypes/watcher/v1"
 
 // Predicate renders the watched run as a SLSA build provenance v1 predicate.
 // The builder is the workflow that ran; the source repository at the run's
-// commit is recorded as a resolved dependency. The inputs (from RunInputs)
-// are the triggerer-controlled workflow inputs and are recorded in the
-// external parameters.
-func (c *Client) Predicate(run *gogithub.WorkflowRun, inputs map[string]any) (*buildv1.Provenance, error) {
+// commit is recorded as a resolved dependency. The ref (from RunRef) and the
+// inputs (from RunInputs) are recorded in the external parameters.
+func (c *Client) Predicate(run *gogithub.WorkflowRun, ref string, inputs map[string]any) (*buildv1.Provenance, error) {
 	repoURI := fmt.Sprintf("https://github.com/%s/%s", c.Owner, c.Repo)
 
 	externalParams := map[string]any{
 		"workflow":   run.GetPath(),
 		"repository": repoURI,
-		"ref":        headRef(run),
+		"ref":        ref,
 		"event":      run.GetEvent(),
 	}
 	if len(inputs) > 0 {
@@ -45,13 +46,13 @@ func (c *Client) Predicate(run *gogithub.WorkflowRun, inputs map[string]any) (*b
 			BuildType:          BuildType,
 			ExternalParameters: external,
 			ResolvedDependencies: []*intoto.ResourceDescriptor{{
-				Uri:    fmt.Sprintf("git+%s@%s", repoURI, headRef(run)),
+				Uri:    fmt.Sprintf("git+%s@%s", repoURI, ref),
 				Digest: map[string]string{"gitCommit": run.GetHeadSHA()},
 			}},
 		},
 		RunDetails: &buildv1.RunDetails{
 			Builder: &buildv1.Builder{
-				Id: fmt.Sprintf("%s/%s@%s", repoURI, run.GetPath(), headRef(run)),
+				Id: fmt.Sprintf("%s/%s@%s", repoURI, run.GetPath(), ref),
 			},
 			Metadata: &buildv1.BuildMetadata{
 				InvocationId: fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repoURI, run.GetID(), run.GetRunAttempt()),
@@ -67,14 +68,32 @@ func (c *Client) Predicate(run *gogithub.WorkflowRun, inputs map[string]any) (*b
 	return pred, nil
 }
 
-// headRef returns the fully-qualified git ref the run built, falling back to
-// the head commit when the branch is not known.
-func headRef(run *gogithub.WorkflowRun) string {
-	if branch := run.GetHeadBranch(); branch != "" {
-		if strings.HasPrefix(branch, "refs/") {
-			return branch
+// RunRef returns the fully-qualified git ref the run built. Inside the
+// attested run the runner's own GITHUB_REF is exact. For other runs the ref
+// name is resolved through the git refs API, because the runs API reports a
+// tag's name in head_branch, indistinguishable from a branch. When nothing
+// resolves, the name is assumed to be a branch; with no name at all the head
+// commit is returned.
+func (c *Client) RunRef(ctx context.Context, run *gogithub.WorkflowRun) string {
+	if c.sameRun() {
+		if ref := os.Getenv(envRef); ref != "" {
+			return ref
 		}
-		return "refs/heads/" + branch
 	}
-	return run.GetHeadSHA()
+
+	name := run.GetHeadBranch()
+	if name == "" {
+		return run.GetHeadSHA()
+	}
+	if strings.HasPrefix(name, "refs/") {
+		return name
+	}
+	if ref, _, err := c.gh.Git.GetRef(ctx, c.Owner, c.Repo, "heads/"+name); err == nil &&
+		ref.GetObject().GetSHA() == run.GetHeadSHA() {
+		return "refs/heads/" + name
+	}
+	if _, _, err := c.gh.Git.GetRef(ctx, c.Owner, c.Repo, "tags/"+name); err == nil {
+		return "refs/tags/" + name
+	}
+	return "refs/heads/" + name
 }

@@ -26,6 +26,7 @@ const (
 	envActions    = "GITHUB_ACTIONS"
 	envJob        = "GITHUB_JOB"
 	envRunner     = "RUNNER_NAME"
+	envRef        = "GITHUB_REF"
 	envToken      = "GITHUB_TOKEN" //nolint:gosec // env var name, not a credential
 )
 

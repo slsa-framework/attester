@@ -77,7 +77,7 @@ func addWatch(parent *cobra.Command) {
 				return err
 			}
 
-			pred, err := client.Predicate(run, client.RunInputs(cmd.Context(), run))
+			pred, err := client.Predicate(run, client.RunRef(cmd.Context(), run), client.RunInputs(cmd.Context(), run))
 			if err != nil {
 				return err
 			}
