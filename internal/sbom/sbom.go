@@ -16,9 +16,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/carabiner-dev/attestation"
-	"github.com/carabiner-dev/collector"
 	intoto "github.com/in-toto/attestation/go/v1"
+	"github.com/policylabs/attestation"
+	"github.com/policylabs/collector"
 	"github.com/protobom/protobom/pkg/reader"
 	protobom "github.com/protobom/protobom/pkg/sbom"
 )

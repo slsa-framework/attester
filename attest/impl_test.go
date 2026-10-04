@@ -13,9 +13,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/carabiner-dev/signer"
-	signeroptions "github.com/carabiner-dev/signer/options"
 	intoto "github.com/in-toto/attestation/go/v1"
+	"github.com/policylabs/signer"
+	signeroptions "github.com/policylabs/signer/options"
 	sdsse "github.com/sigstore/protobuf-specs/gen/pb-go/dsse"
 	"google.golang.org/protobuf/types/known/structpb"
 )
