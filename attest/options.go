@@ -9,9 +9,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/carabiner-dev/signer"
-	signeroptions "github.com/carabiner-dev/signer/options"
 	intoto "github.com/in-toto/attestation/go/v1"
+	"github.com/policylabs/signer"
+	signeroptions "github.com/policylabs/signer/options"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -19,7 +19,7 @@ import (
 
 // Signer signs a serialized in-toto statement, returning the signed artifact
 // (a sigstore bundle or a DSSE envelope). It is satisfied by *signer.Signer
-// from github.com/carabiner-dev/signer.
+// from github.com/policylabs/signer.
 type Signer interface {
 	SignStatement(data []byte, funcs ...signeroptions.SignOptFn) (signer.SignedArtifact, error)
 }

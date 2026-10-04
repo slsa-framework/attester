@@ -6,8 +6,8 @@ package cmd
 import (
 	"errors"
 
-	"github.com/carabiner-dev/signer"
-	signeroptions "github.com/carabiner-dev/signer/options"
+	"github.com/policylabs/signer"
+	signeroptions "github.com/policylabs/signer/options"
 	"github.com/spf13/cobra"
 
 	"github.com/slsa-framework/attester/attest"

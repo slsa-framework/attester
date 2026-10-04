@@ -3,13 +3,13 @@ module github.com/slsa-framework/attester
 go 1.26.0
 
 require (
-	github.com/carabiner-dev/attestation v0.2.1
-	github.com/carabiner-dev/collector v0.3.17
 	github.com/carabiner-dev/command v0.3.3
 	github.com/carabiner-dev/hasher v0.2.4
-	github.com/carabiner-dev/signer v0.6.2
 	github.com/google/go-github/v90 v90.0.0
 	github.com/in-toto/attestation v1.2.0
+	github.com/policylabs/attestation v0.3.0
+	github.com/policylabs/collector v0.4.0
+	github.com/policylabs/signer v0.6.4
 	github.com/protobom/protobom v0.6.2
 	github.com/sigstore/protobuf-specs v0.5.2
 	github.com/slsa-framework/protos v0.0.0-20260905230943-612c99695f3b
@@ -59,14 +59,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.0 // indirect
 	github.com/aws/smithy-go v1.27.3 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/carabiner-dev/attestation v0.2.1 // indirect
 	github.com/carabiner-dev/deadrop v0.0.0-20260228173914-d95e9ea2877d // indirect
 	github.com/carabiner-dev/ghrfs v0.3.7 // indirect
 	github.com/carabiner-dev/github v0.2.3 // indirect
 	github.com/carabiner-dev/jsonl v0.2.2 // indirect
 	github.com/carabiner-dev/openeox v1.0.0 // indirect
 	github.com/carabiner-dev/osv v0.1.2 // indirect
-	github.com/carabiner-dev/policy v0.5.6 // indirect
-	github.com/carabiner-dev/predicates v0.5.4 // indirect
 	github.com/carabiner-dev/sbomfs v0.2.0 // indirect
 	github.com/carabiner-dev/spdx3 v0.1.0 // indirect
 	github.com/carabiner-dev/stash v0.0.0-20261004182444-008b3bad7a45 // indirect
@@ -176,11 +175,8 @@ require (
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/policylabs/attestation v0.3.0 // indirect
-	github.com/policylabs/collector v0.4.0 // indirect
 	github.com/policylabs/policy v0.5.7-0.20261004134513-55e5473eef09 // indirect
 	github.com/policylabs/predicates v0.6.0 // indirect
-	github.com/policylabs/signer v0.6.4 // indirect
 	github.com/regclient/regclient v0.11.6 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/samber/lo v1.53.0 // indirect
