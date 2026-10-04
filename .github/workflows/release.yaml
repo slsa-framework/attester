@@ -81,7 +81,7 @@ jobs:
       # the tip of this repository, which is unpinned and unverified. The
       # attester attesting a release is therefore always the previous one.
       build-from-source: false
-      version: v0.1.0-rc.3
+      version: v0.1.0
 
   # Publish the provenance to the release. The installer action verifies the
   # downloaded binaries against this file, so it must land on the release as
