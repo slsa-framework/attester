@@ -104,8 +104,8 @@ github.com/c2sp/wycheproof v0.0.0-20260105152342-fca0d3ba9f12 h1:C34LW7dhWgjAaAO
 github.com/c2sp/wycheproof v0.0.0-20260105152342-fca0d3ba9f12/go.mod h1:U1QjrC6KepOmtVmJn3QsKOTd9HliGr/da5afPEhLRnk=
 github.com/carabiner-dev/attestation v0.2.1 h1:VhjV5YlO9TsW50Sr/Zd54bdbZhhDAqgxC3kB9z1I+3Q=
 github.com/carabiner-dev/attestation v0.2.1/go.mod h1:O84vF84RZG3pJO/6BYrPs718bZviHF5DKajP1HsrDpw=
-github.com/carabiner-dev/command v0.3.3 h1:TwS5tAa+fHhY83lX5XjyakmF12mmcoUSwc87ZLxnBdo=
-github.com/carabiner-dev/command v0.3.3/go.mod h1:winbJcNyPQwCnYegXBiNG2TbqXgE9Zyfh7DF9cW/r1s=
+github.com/carabiner-dev/command v0.3.4 h1:32MHCUmtz28WqhSUAivpY95bNxTsua5zuSko/2ifeeo=
+github.com/carabiner-dev/command v0.3.4/go.mod h1:k946eY40zPkWUQww1FXphDIcqtMa9ZqQLlhBAHJvOos=
 github.com/carabiner-dev/deadrop v0.0.0-20260228173914-d95e9ea2877d h1:Gl8o56PI73PE6YcDzUd49iJJBdp/ye/METanFm8gG64=
 github.com/carabiner-dev/deadrop v0.0.0-20260228173914-d95e9ea2877d/go.mod h1:lwgOJlVMxPu8jptfMKOMTTQntzBTTH38VyuvBeaXUVg=
 github.com/carabiner-dev/ghrfs v0.3.7 h1:P6BVj5LT6yByZZ70AIG5lwKaavFQhD91VDvyYp+xy5A=

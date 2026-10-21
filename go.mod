@@ -3,7 +3,7 @@ module github.com/slsa-framework/attester
 go 1.26.0
 
 require (
-	github.com/carabiner-dev/command v0.3.3
+	github.com/carabiner-dev/command v0.3.4
 	github.com/carabiner-dev/hasher v0.2.4
 	github.com/google/go-github/v90 v90.0.0
 	github.com/in-toto/attestation v1.2.0
