@@ -75,7 +75,7 @@ func TestSignWithKeyEmitsDSSE(t *testing.T) {
 	if err := json.Unmarshal(data, &env); err != nil {
 		t.Fatalf("output is not valid json: %v", err)
 	}
-	if env.PayloadType != "https://in-toto.io/Statement/v1" {
+	if env.PayloadType != "application/vnd.in-toto+json" {
 		t.Fatalf("unexpected payloadType: %q", env.PayloadType)
 	}
 	if len(env.Signatures) != 1 || env.Signatures[0].Sig == "" {
