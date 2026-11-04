@@ -9,7 +9,7 @@ require (
 	github.com/in-toto/attestation v1.2.0
 	github.com/policylabs/attestation v0.3.0
 	github.com/policylabs/collector v0.4.0
-	github.com/policylabs/signer v0.6.5
+	github.com/policylabs/signer v0.6.6
 	github.com/protobom/protobom v0.7.0
 	github.com/sigstore/protobuf-specs v0.5.2
 	github.com/slsa-framework/protos v0.0.0-20260905230943-612c99695f3b
@@ -236,7 +236,7 @@ require (
 	google.golang.org/genproto v0.0.0-20260622175928-b703f567277d // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
-	google.golang.org/grpc v1.84.0 // indirect
+	google.golang.org/grpc v1.85.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect

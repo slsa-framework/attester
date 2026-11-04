@@ -180,7 +180,7 @@ func TestSign(t *testing.T) {
 		fs := &fakeSigner{
 			artifact: &signer.EnvelopeArtifact{
 				Envelope: &sdsse.Envelope{
-					PayloadType: "https://in-toto.io/Statement/v1",
+					PayloadType: "application/vnd.in-toto+json",
 					Payload:     statement,
 					Signatures:  []*sdsse.Signature{{Keyid: "test", Sig: []byte("sig")}},
 				},
@@ -199,7 +199,7 @@ func TestSign(t *testing.T) {
 		if err := json.Unmarshal(data, &env); err != nil {
 			t.Fatalf("signed output is not valid json: %v", err)
 		}
-		if env["payloadType"] != "https://in-toto.io/Statement/v1" {
+		if env["payloadType"] != "application/vnd.in-toto+json" {
 			t.Fatalf("unexpected payloadType: %v", env["payloadType"])
 		}
 	})
