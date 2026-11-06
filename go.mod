@@ -14,7 +14,7 @@ require (
 	github.com/sigstore/protobuf-specs v0.5.2
 	github.com/slsa-framework/protos v0.0.0-20260905230943-612c99695f3b
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	google.golang.org/protobuf v1.36.12
 	sigs.k8s.io/yaml v1.6.0
 )
