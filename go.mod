@@ -9,7 +9,7 @@ require (
 	github.com/in-toto/attestation v1.2.0
 	github.com/policylabs/attestation v0.3.0
 	github.com/policylabs/collector v0.4.0
-	github.com/policylabs/signer v0.6.6
+	github.com/policylabs/signer v0.6.7
 	github.com/protobom/protobom v0.7.0
 	github.com/sigstore/protobuf-specs v0.5.2
 	github.com/slsa-framework/protos v0.0.0-20260905230943-612c99695f3b
