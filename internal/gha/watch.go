@@ -231,6 +231,14 @@ func (c *Client) runJobs(ctx context.Context) ([]*gogithub.WorkflowJob, error) {
 	for {
 		page, res, err := c.gh.Actions.ListWorkflowJobs(ctx, c.Owner, c.Repo, c.RunID, opts)
 		if err != nil {
+			if opts.ListOptions.PerPage == 100 {
+				// The GitHub API sometimes runs into server errors with
+				// per_page=100, so try again with per_page=30 (the default).
+				jobs = jobs[:0]
+				opts.ListOptions.PerPage = 30
+				opts.Page = 1
+				continue
+			}
 			return nil, fmt.Errorf("listing run jobs: %w", err)
 		}
 		jobs = append(jobs, page.Jobs...)
